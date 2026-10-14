@@ -1,0 +1,30 @@
+[
+  {
+    "id": "F-1001",
+    "client": "Constructora Sur",
+    "issuedAt": "2026-08-02",
+    "amount": 1250000,
+    "status": "paid"
+  },
+  {
+    "id": "F-1002",
+    "client": "Servicios Andes",
+    "issuedAt": "2026-08-15",
+    "amount": 890000,
+    "status": "open"
+  },
+  {
+    "id": "F-1003",
+    "client": "Constructora Sur",
+    "issuedAt": "2026-09-01",
+    "amount": 2100000,
+    "status": "void"
+  },
+  {
+    "id": "F-1004",
+    "client": "Taller Norte",
+    "issuedAt": "2026-09-08",
+    "amount": 450000,
+    "status": "open"
+  }
+]

@@ -1,0 +1,15 @@
+{
+  "name": "workshop-devs-template",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Tesseron brownfield lab: Andes Lab invoice listing. CSV export is the team ticket.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test",
+    "list": "node src/cli.js list",
+    "get": "node src/cli.js get"
+  }
+}
