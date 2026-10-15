@@ -28,7 +28,7 @@ Anota el comando y el resultado. Primero rojo. Después verde, o un gap citado.
 
 | Story | Comando | Resultado | Gap (si sigue rojo) |
 |---|---|---|---|
-| T-01-story-1 | | | |
+| T-01-story-1 | `npm test` (`test/invoices-csv.test.js`) | Rojo (2026-10-15): `ERR_MODULE_NOT_FOUND: Cannot find module 'src/invoices-csv.js'`. tests 5, pass 4, fail 1 | |
 | T-01-story-2 | | | |
 | T-01-story-3 | | | |
 
@@ -38,7 +38,7 @@ Una tarea acotada y su resumen. Si hubo implementación y falta esta línea, M4 
 
 | Story | Tarea | Resumen |
 |---|---|---|
-| | | |
+| T-01-story-1 | Explore (solo lectura): revisar `test/invoices-csv.test.js` contra C1 (sin BOM) y C8 de la SPEC y la Story 1 del PLAN | Sin gaps: asserta los strings exactos con CRLF y sin BOM, y nada fuera de la spec. Señaló un BOM literal invisible en el `startsWith`, que se cambió por el escape `'﻿'`. |
 
 ## Día 3
 
