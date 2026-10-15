@@ -2,6 +2,8 @@
 
 Uno por equipo. Un extraño tiene que poder entenderlo sin el ticket abierto. Complétalo en M1. Grílalo en M2: el entregable es un diff en este archivo.
 
+Ticket: [`tickets/T-01.md`](../tickets/T-01.md). Pedido por María (tesorería, Andes Lab).
+
 ## Problema
 
 Tesorería de Andes Lab arma a mano, cada cierre de mes, el CSV de facturas que envía al banco: le toma cerca de una hora y se cuelan facturas anuladas.
