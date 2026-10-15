@@ -29,7 +29,7 @@ Anota el comando y el resultado. Primero rojo. Después verde, o un gap citado.
 | Story | Comando | Resultado | Gap (si sigue rojo) |
 |---|---|---|---|
 | T-01-story-1 | | | |
-| T-01-story-2 | `npm test` | Rojo (15-10): `✖ test\export-options.test.js` con `Error [ERR_MODULE_NOT_FOUND]: Cannot find module '...\src\export-options.js'`; `tests 5, pass 4, fail 1` (los 4 de `invoices.test.js` siguen verdes). | Falta implementar `src/export-options.js` (`UsageError`, `parseExportArgs`, `selectInvoices`). |
+| T-01-story-2 | `npm test` | Rojo (15-10): `✖ test\export-options.test.js` con `Error [ERR_MODULE_NOT_FOUND]: Cannot find module '...\src\export-options.js'`; `tests 5, pass 4, fail 1` (los 4 de `invoices.test.js` siguen verdes). Verde (15-10, tras crear `src/export-options.js`): `tests 22, pass 22, fail 0`, local con Node 26; falta confirmar en la CI (Ubuntu, Node 20). | |
 | T-01-story-3 | | | |
 
 ## Workers
