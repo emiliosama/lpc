@@ -6,70 +6,74 @@ Ticket: [`tickets/T-01.md`](../tickets/T-01.md). Pedido por María (tesorería, 
 
 ## Problema
 
-Tesorería arma a mano, cada cierre de mes, el CSV de facturas que manda al banco: copia el listado de la CLI a una planilla. Le toma cerca de una hora y se cuelan facturas anuladas que no deberían ir.
-
-El archivo que produce esta spec es para que tesorería lo abra en Excel, lo revise y decida qué manda al banco. No es el archivo del banco.
+Tesorería de Andes Lab arma a mano, cada cierre de mes, el CSV de facturas que envía al banco: le toma cerca de una hora y se cuelan facturas anuladas.
 
 ## Alcance
 
-Al cerrar existe un comando nuevo en la CLI:
+Un comando nuevo en la CLI que genera ese CSV:
 
 ```
-node src/cli.js export-csv [--month AAAA-MM] [--include-void] [--out <ruta>]
+node src/cli.js export-csv [--out <archivo>] [--month YYYY-MM]
 ```
 
-- **Columnas, en este orden:** `id;cliente;fecha;monto;estado`. Primera fila de encabezado con esos nombres.
-- **Origen:** las mismas facturas que devuelve `listInvoices()` (`src/data/invoices.json`), en el mismo orden.
-- **Formato para Excel en Windows (configuración regional es-CL):**
-  - Codificación UTF-8 con BOM (`EF BB BF` al inicio), para que los acentos se vean bien.
-  - Separador `;`, porque Excel en español usa la coma como separador decimal.
-  - Fin de línea `\r\n`.
-  - Un campo que contenga `;`, `"` o un salto de línea va entre comillas dobles, y sus `"` internas se duplican.
-- **Campos:**
-  - `fecha`: `issuedAt` tal cual, `AAAA-MM-DD`.
-  - `monto`: entero sin separadores de miles ni símbolo. `1250000`, no `$1.250.000`.
-  - `estado`: el valor del JSON tal cual (`paid`, `open`, `void`), igual que en `node src/cli.js list`, que es lo que tesorería copia hoy.
-- **Anuladas:** las facturas con `status: "void"` quedan fuera por defecto. Con `--include-void` entran en el mismo archivo con estado `void`, para que tesorería pueda cuadrar filtrándolas en Excel. No hay archivo aparte de anuladas.
-- **Filtro por mes (opcional):** `--month 2026-08` deja solo las facturas cuyo `issuedAt` empieza con `2026-08`. Sin `--month` se exportan todos los meses.
-- **Archivo:** por defecto `facturas.csv` en el directorio actual. `--out <ruta>` lo cambia (por ejemplo `--out export-tesoreria-agosto.csv`). Si el archivo existe, se sobrescribe.
-- **Salida en consola:** al terminar, una sola línea en stdout: `Facturas exportadas: <N> -> <ruta>`, donde `<ruta>` es el valor de `--out` tal como se escribió, o `facturas.csv` si no se pasó. Por ejemplo `Facturas exportadas: 2 -> facturas.csv`. Código de salida 0.
-- **Errores:** un `--month` que no sea `AAAA-MM` con mes `01` a `12`, un `--month` o `--out` sin valor, o una opción desconocida, termina con código 1, un mensaje de uso en stderr que contiene `export-csv` y sin escribir archivo.
-- **Si no se puede escribir el archivo** (por ejemplo, está abierto en Excel o la carpeta no existe): código 1, un mensaje en stderr que nombra la ruta y sin stack trace.
-- El mensaje de uso general de la CLI incluye `export-csv`.
-- **Contrato del formato:** `src/invoices-csv.js` exporta `toCsv(invoices)`, que recibe un arreglo de facturas con la forma de `invoices.json` y devuelve el texto CSV (encabezado y filas, con `\r\n`) sin BOM. No filtra: el filtro por mes y por anuladas lo hace el comando antes de llamarla.
+- Lee las facturas de `src/data/invoices.json` (mismo origen que `list`).
+- Omite siempre las facturas anuladas (`status` = `void`).
+- Las filas salen en el mismo orden que en el JSON (el mismo de `list`). No se reordenan.
+- `--out <archivo>`: ruta del archivo de salida. Por defecto `facturas.csv` en el directorio actual. Acepta cualquier nombre, por ejemplo `export-tesoreria-agosto.csv`. Si el archivo ya existe, se sobrescribe. Si la carpeta de destino no existe, no se crea: es un error.
+- `--month YYYY-MM`: opcional. Deja solo las facturas cuyo `issuedAt` cae en ese mes. Sin el flag, exporta todos los meses.
+- Formato del archivo, pensado para Excel en Windows con configuración regional de Chile:
+  - Codificación UTF-8 con BOM, para que los acentos se vean bien.
+  - Separador `;` (supuesto: se confirma en la validación manual).
+  - Primera fila con encabezados: `id;cliente;fecha;monto;estado`.
+  - `fecha` tal como viene (`YYYY-MM-DD`).
+  - `monto` como entero sin símbolo ni separador de miles (`1250000`, no `$1.250.000`).
+  - `estado` con el valor crudo del JSON (`paid`, `open`), igual que hoy en `list`. No se traduce.
+  - Un campo que contenga `;`, comillas o salto de línea va entre comillas dobles, con las comillas internas duplicadas.
+- Al terminar imprime en stdout `<n> facturas exportadas a <ruta>`.
+- Ante un error (argumentos inválidos o carpeta inexistente) sale con código distinto de 0, explica el problema en stderr y no crea ni modifica el archivo.
 
 ## Aceptación observable
 
-Con el fixture actual (`F-1001` y `F-1002` de agosto 2026; `F-1003` anulada y `F-1004` de septiembre 2026):
+Con el fixture actual (`F-1001` a `F-1004`, donde `F-1003` está anulada):
 
-1. `export-csv --month 2026-08 --out <tmp>/a.csv` escribe un archivo cuyos 3 primeros bytes son `EF BB BF` y cuyo contenido, sin el BOM, es exactamente:
-   ```
-   id;cliente;fecha;monto;estado\r\n
-   F-1001;Constructora Sur;2026-08-02;1250000;paid\r\n
-   F-1002;Servicios Andes;2026-08-15;890000;open\r\n
-   ```
-   y stdout es `Facturas exportadas: 2 -> <tmp>/a.csv`.
-2. `export-csv --out <tmp>/b.csv` (sin mes) trae `F-1001`, `F-1002` y `F-1004`, en ese orden, y no trae `F-1003`.
-3. `export-csv --include-void --out <tmp>/c.csv` trae las 4 facturas, con `F-1003` y estado `void`.
-4. `export-csv --month 2026-09 --out <tmp>/d.csv` trae solo `F-1004`. Con `--include-void` agrega `F-1003`.
-5. `export-csv --month 2026-12 --out <tmp>/e.csv` escribe solo el encabezado, stdout es `Facturas exportadas: 0 -> <tmp>/e.csv` y el código de salida es 0.
-6. `export-csv --month 2026-13`, `--month agosto`, `--month 2026-8`, `--month` sin valor y `--formato x`, cada uno con `--out <tmp>/f.csv`, y `export-csv --out` sin valor ejecutado en `<tmp>`, terminan con código 1, escriben en stderr un texto que contiene `export-csv` y no crean `<tmp>/f.csv` ni `<tmp>/facturas.csv`.
-7. Ejecutado en un directorio temporal sin `--out`, crea `facturas.csv` en ese directorio y stdout es `Facturas exportadas: 3 -> facturas.csv`. Si `facturas.csv` ya existía con otro contenido, queda reemplazado.
-8. `toCsv([{ id: 'F-9', client: 'Comercial "El Sol"; Ltda', issuedAt: '2026-08-01', amount: 1000, status: 'open' }])` devuelve exactamente `id;cliente;fecha;monto;estado\r\nF-9;"Comercial ""El Sol""; Ltda";2026-08-01;1000;open\r\n`. El fixture no se toca.
-9. `list` y `get` se comportan igual que hoy: los tests actuales siguen en verde, incluido que el listado trae las anuladas.
-10. `export-csv --out <tmp>/no-existe/g.csv` termina con código 1, stderr contiene `<tmp>/no-existe/g.csv` y no contiene `    at ` (sin stack trace).
+1. `export-csv --out <tmp>/facturas.csv` sale con código 0 y el archivo tiene el encabezado más `F-1001`, `F-1002` y `F-1004`, en ese orden. `F-1003` no aparece.
+2. `export-csv` sin `--out` escribe `facturas.csv` en el directorio de trabajo.
+3. `export-csv --out <tmp>/export-tesoreria-agosto.csv` escribe exactamente en esa ruta.
+4. Los primeros tres bytes del archivo son el BOM UTF-8 (`EF BB BF`).
+5. La primera línea (sin BOM) es `id;cliente;fecha;monto;estado`.
+6. La fila de `F-1001` es `F-1001;Constructora Sur;2026-08-02;1250000;paid`.
+7. `export-csv --month 2026-08` exporta solo `F-1001` y `F-1002`.
+8. `export-csv --month 2026-09` exporta solo `F-1004` (la anulada `F-1003` no sale aunque sea de septiembre).
+9. `export-csv --month 2026-01` (mes sin facturas) sale con código 0 y deja un archivo con solo el encabezado.
+10. Cada uno de estos casos sale con código distinto de 0, escribe en stderr y no crea el archivo:
+    - `--month agosto`
+    - `--month 2026-13`
+    - `--out` sin valor
+    - un flag desconocido, por ejemplo `--mes 2026-08`
+    - `--out <tmp>/no-existe/facturas.csv` (carpeta inexistente)
+11. La función que arma una fila escapa los campos así:
+    - el cliente `Sur; Norte` sale como `"Sur; Norte"`
+    - el cliente `Taller "El Sol"` sale como `"Taller ""El Sol"""`
+    - un campo sin `;`, comillas ni salto de línea sale sin comillas.
+12. `list` y `get` siguen igual: los tests actuales de `test/invoices.test.js` pasan.
+13. Si `<tmp>/facturas.csv` ya existe con otro contenido, `export-csv --out <tmp>/facturas.csv` lo reemplaza por el export nuevo.
+14. `export-csv --out <tmp>/facturas.csv` imprime en stdout exactamente `3 facturas exportadas a <tmp>/facturas.csv`.
+
+### Validación manual (antes de cerrar el ticket)
+
+No es un test automático. Se anota el resultado en `workdocs/status.md`.
+
+- María corre `node src/cli.js export-csv --month 2026-08 --out export-tesoreria-agosto.csv`, abre el archivo con doble clic en su Excel y ve 5 columnas separadas, con los acentos bien. Si no se ve así, el supuesto del separador `;` se revisa antes de mergear.
 
 ## Fuera de alcance
 
-- Formato específico del banco (columnas, orden o separador distintos) y el envío al banco.
-- Archivos `.xlsx` u otros formatos que no sean CSV.
-- Traducir los estados al español (`pagada`, `abierta`, `anulada`).
-- Filtros por cliente, estado, rango de fechas u otros fuera de `--month`.
-- Elegir el mes con palabras (`--month agosto`) o nombrar el archivo automáticamente según el mes.
-- Endpoint HTTP, login, interfaz web o despliegue.
-- Cambiar `list`, `get`, `listInvoices()` o los datos de `src/data/invoices.json`.
-- Agregar dependencias npm.
-
-## Supuestos
-
-- Los Excel de tesorería usan configuración regional en español, así que separan por `;` al abrir con doble clic. Un Excel en inglés vería una sola columna. Como "abre bien en Excel" no se puede automatizar, antes de cerrar el ticket María abre a mano el CSV de agosto (`--month 2026-08`) y confirma columnas y acentos.
+- Incluir anuladas en el export (no hay flag para eso).
+- Endpoint HTTP, login o despliegue.
+- Otros formatos (XLSX, JSON) o columnas configurables.
+- Filtros por rango de fechas, cliente o estado distintos de `--month`.
+- Formatear montos con `$` o separador de miles, o cambiar la fecha a `DD-MM-YYYY`.
+- Traducir los valores de `estado`.
+- Reordenar las filas.
+- Proteger un archivo existente (`--force` o confirmación) o crear carpetas de destino.
+- Cambios a `list`, `get` o a `src/data/invoices.json`.
+- Envío del archivo al banco.
