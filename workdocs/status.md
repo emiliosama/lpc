@@ -11,6 +11,7 @@ El merge del equipo no aprueba a quien no rotó. Cada persona anota su nombre en
 | Persona | Roles (por ejemplo: redacción o grill de la spec, dueña de test, comentario de review) |
 |---|---|
 | Gerardo | |
+| dzumelzu | |
 | | |
 | | |
 | | |
