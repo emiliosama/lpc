@@ -12,7 +12,7 @@ El merge del equipo no aprueba a quien no rotó. Cada persona anota su nombre en
 |---|---|
 | Gerardo | |
 | dzumelzu | |
-| | |
+| Emilio | |
 | | |
 | | |
 
