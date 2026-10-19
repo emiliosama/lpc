@@ -30,7 +30,7 @@ Anota el comando y el resultado. Primero rojo. Después verde, o un gap citado.
 |---|---|---|---|
 | T-01-story-1 | | | |
 | T-01-story-2 | | | |
-| T-01-story-3 | `npm test` (Node v20.20.2, Windows, `test/export-csv.cli.test.js`) | **Rojo (2026-10-15):** `# tests 20`, `# pass 4`, `# fail 16`. Fallan los 16 nuevos (C1–C7, C10 y uso general): la CLI responde `usage: node src/cli.js <list\|get> [id]` con código 1, sin `export-csv` en stderr y sin archivo. Los 4 de `test/invoices.test.js` siguen en verde (C9). | Sigue rojo hasta implementar la rama `export-csv` en `src/cli.js` (y que las Stories 1 y 2 estén en `main`). |
+| T-01-story-3 | `npm test` (Node v20.20.2, Windows, `test/export-csv.cli.test.js`) | **Rojo (2026-10-15):** `# tests 20`, `# pass 4`, `# fail 16`. Fallan los 16 nuevos (C1–C7, C10 y uso general): la CLI responde `usage: node src/cli.js <list\|get> [id]` con código 1, sin `export-csv` en stderr y sin archivo. Los 4 de `test/invoices.test.js` siguen en verde (C9). **Verde contra contratos (2026-10-19):** con `src/export-options.js` de `origin/feat/T-01-story-2` y un `toCsv` provisional según el contrato de la Story 1, copiados sin commitear, `# tests 20`, `# pass 20`, `# fail 0`. **En la rama sola:** `# pass 4`, `# fail 16`, por `ERR_MODULE_NOT_FOUND` de `src/export-options.js`. | Gap: el verde real depende de que las Stories 1 y 2 estén en `main` (la 1 aún no tiene rama publicada). Mientras tanto `src/cli.js` no carga en esta rama, así que `list` y `get` por CLI también fallan aquí. El PR se mergea después de 1 y 2, rebasando sobre `main`, y ahí se vuelve a correr `npm test`. |
 
 ## Workers
 
