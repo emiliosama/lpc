@@ -2,7 +2,7 @@
 
 Uno por equipo. Un extraño tiene que poder entenderlo sin el ticket abierto. Complétalo en M1. Grílalo en M2: el entregable es un diff en este archivo.
 
-Ticket: [`tickets/T-01.md`](../tickets/T-01.md). Pedido por María (tesorería, Andes Lab).
+Tickets: [`tickets/T-01.md`](../tickets/T-01.md) (export CSV por CLI, cerrado salvo la revisión en Excel) y [`tickets/T-02.md`](../tickets/T-02.md) (panel web local). Los dos los pide María (tesorería, Andes Lab). T-02 se apoya en T-01: el botón del panel descarga el mismo CSV.
 
 ## Problema
 
@@ -10,7 +10,11 @@ Tesorería arma a mano, cada cierre de mes, el CSV de facturas que manda al banc
 
 El archivo que produce esta spec es para que tesorería lo abra en Excel, lo revise y decida qué manda al banco. No es el archivo del banco.
 
+Con el CSV ya resuelto (T-01), María todavía revisa las facturas en la terminal antes de descargarlo, y no le gusta. T-02 le da una página local en el navegador para ver, filtrar y sumar las facturas, y descargar el CSV de lo que está viendo.
+
 ## Alcance
+
+### T-01: comando `export-csv`
 
 Al cerrar existe un comando nuevo en la CLI:
 
@@ -38,9 +42,37 @@ node src/cli.js export-csv [--month AAAA-MM] [--include-void] [--out <ruta>]
 - **Errores:** un `--month` que no sea `AAAA-MM` con mes `01` a `12`, un `--month` o `--out` sin valor, un `--out` vacío o hecho solo de espacios, una opción repetida o una opción desconocida, termina con código 1, un mensaje de uso en stderr que contiene `export-csv` y sin escribir archivo.
 - **Si no se puede escribir el archivo** (por ejemplo, está abierto en Excel o la carpeta no existe): código 1, un mensaje en stderr que nombra la ruta tal como se escribió en `--out` (o `facturas.csv`) y sin stack trace.
 - El mensaje de uso general de la CLI incluye `export-csv`.
-- **Contrato del formato:** `src/invoices-csv.js` exporta `toCsv(invoices)`, que recibe un arreglo de facturas con la forma de `invoices.json` y devuelve el texto CSV (encabezado y filas, con `\r\n`) sin BOM. No filtra: el filtro por mes y por anuladas lo hace el comando antes de llamarla. Es el único contrato que fija la spec, porque los criterios 8 y 11 a 14 lo necesitan; el resto del diseño va en `PLAN.md`.
+- **Contrato del formato:** `src/invoices-csv.js` exporta `toCsv(invoices)`, que recibe un arreglo de facturas con la forma de `invoices.json` y devuelve el texto CSV (encabezado y filas, con `\r\n`) sin BOM. No filtra: el filtro por mes y por anuladas lo hace el comando antes de llamarla. Es un contrato que fija la spec, porque los criterios 8 y 11 a 14 lo necesitan; el resto del diseño va en `PLAN.md`.
+
+### T-02: panel web local
+
+Al cerrar, `node src/server.js` levanta un servidor HTTP local en el puerto 3000 e imprime en stdout `Panel de facturas: http://localhost:3000`. María abre esa dirección en el navegador.
+
+- **Sin dependencias nuevas:** solo módulos de Node 20 (`node:http`, `node:fs`, `node:test`, `fetch`). Nada de `npm install`.
+- **Datos:** las facturas salen de `listInvoices()` (`src/invoices.js`), en el mismo orden. No se cambia `src/invoices.js` ni el fixture.
+- **Filtros (iguales en la API, la tabla y la descarga):**
+  - `status`: `paid`, `open` o `void`, el valor del JSON en minúsculas. Vacío o ausente: todos los estados, **incluidas las anuladas**. Es distinto de la CLI, que saca las anuladas por defecto: en el panel, el filtro "Todas" muestra todo lo que hay.
+  - `month`: `AAAA-MM` con mes `01` a `12`, la misma regla que `--month`. Deja las facturas cuyo `issuedAt` empieza con ese valor. Vacío o ausente: todos los meses.
+  - Los dos se combinan con Y. Otros parámetros de la URL se ignoran.
+  - Un `status` o `month` con otro valor (por ejemplo `anulada`, `VOID`, `2026-13` o `agosto`) responde `400` con JSON `{ "error": "<texto>" }`, con un texto no vacío.
+- **`GET /api/invoices?status=&month=`:** `200`, `Content-Type: application/json; charset=utf-8`, y el cuerpo es el arreglo de facturas filtradas, con los mismos objetos de `invoices.json`.
+- **`GET /api/export.csv?status=&month=`:** `200`, `Content-Type: text/csv; charset=utf-8`, `Content-Disposition: attachment; filename="facturas.csv"`. El cuerpo es BOM UTF-8 más `toCsv(filtradas)`: los mismos bytes que escribe `export-csv` para las mismas facturas, con todas las reglas de formato de T-01.
+- **`GET /`:** `200`, `Content-Type: text/html; charset=utf-8`. Un solo HTML con:
+  - un `<select id="status">` con las opciones `""` (Todas), `paid` (Pagada), `open` (Abierta) y `void` (Anulada). Solo las etiquetas del filtro van en español;
+  - un `<input id="month" type="month">`;
+  - una `<table>` con las columnas id, cliente, fecha, monto y estado, con los valores tal como en el CSV (`monto` como número sin separadores y `estado` como `paid`, `open` o `void`);
+  - un elemento `id="total"` con la suma de `amount` de las filas que se ven en la tabla, anuladas incluidas si se ven;
+  - un enlace `id="download"` con el texto `Descargar CSV`, que apunta a `/api/export.csv` con los filtros que están elegidos.
+  Al cambiar un filtro, la tabla, el total y el enlace se actualizan sin recargar la página.
+- **`GET /panel.js`:** `200`, `Content-Type: text/javascript; charset=utf-8`. Es el módulo JS que importa la página. Exporta dos funciones puras, que se prueban con `node:test` sin navegador:
+  - `totalAmount(invoices)`: la suma de `amount`. `0` para un arreglo vacío.
+  - `queryString({ status, month })`: `''` si los dos están vacíos; si no, `?` más los no vacíos, en ese orden (`?status=open&month=2026-08`, `?month=2026-08`).
+- Cualquier otra ruta responde `404`.
+- **Contrato del servidor:** `src/server.js` exporta `createServer()`, que devuelve un `http.Server` sin escuchar. Solo cuando se ejecuta con `node src/server.js` escucha en el 3000. Los tests lo levantan en un puerto libre (`listen(0)`).
 
 ## Aceptación observable
+
+### T-01
 
 Con el fixture actual (`F-1001` y `F-1002` de agosto 2026; `F-1003` anulada y `F-1004` de septiembre 2026). Todos se prueban con `npm test` y pasan en la CI (Ubuntu, Node 20), no solo en la máquina local. En los ejemplos, `\r\n` son los dos bytes CR LF, no texto literal.
 
@@ -65,14 +97,35 @@ Con el fixture actual (`F-1001` y `F-1002` de agosto 2026; `F-1003` anulada y `F
 13. `toCsv([{ id: 'F-9', client: 'Sur', issuedAt: '2026-08-01', amount: 1250000.5, status: 'open' }])` devuelve exactamente `id;cliente;fecha;monto;estado\r\nF-9;Sur;2026-08-01;1250000,5;open\r\n`.
 14. `toCsv` con `client: null`, con `client: undefined` o sin la propiedad `client` devuelve, en la fila, exactamente `F-9;;2026-08-01;1000;open`.
 
+### T-02
+
+Con el mismo fixture. Cada test levanta `createServer()` en un puerto libre y consulta con `fetch`. Todos se prueban con `npm test` y pasan en la CI (Ubuntu, Node 20).
+
+15. `GET /api/invoices` responde `200`, `Content-Type` empieza con `application/json`, y el cuerpo es igual (`deepEqual`) a `listInvoices()`: las 4 facturas, `F-1003` incluida.
+16. `GET /api/invoices?status=open` trae `F-1002` y `F-1004`, en ese orden. `?status=paid` trae solo `F-1001`. `?status=void` trae solo `F-1003`.
+17. `GET /api/invoices?month=2026-09` trae `F-1003` y `F-1004`. `?status=open&month=2026-08` trae solo `F-1002`. `?month=2026-12` trae `[]` con `200`.
+18. `GET /api/invoices?status=&month=` (vacíos) trae lo mismo que el criterio 15.
+19. `?status=anulada`, `?status=VOID`, `?month=2026-13` y `?month=agosto`, cada uno en `/api/invoices` y en `/api/export.csv`, responden `400` con un JSON cuyo `error` es un texto no vacío.
+20. `GET /api/export.csv?month=2026-08` responde `200`, con `Content-Type: text/csv; charset=utf-8` y `Content-Disposition: attachment; filename="facturas.csv"`, y su cuerpo son exactamente los bytes del criterio 1 (`EF BB BF` más las 3 líneas).
+21. `GET /api/export.csv` sin filtros trae las 4 facturas, con `F-1003` y estado `void`. `?status=void` trae el encabezado y solo `F-1003`. `?month=2026-12` trae solo el encabezado.
+22. `GET /` responde `200` con `Content-Type: text/html; charset=utf-8`, y el HTML contiene `<table`, `id="status"` con las opciones `value=""`, `value="paid"`, `value="open"` y `value="void"`, `id="month"`, `id="total"`, `id="download"` y el texto `Descargar CSV`.
+23. `GET /panel.js` responde `200` con `Content-Type: text/javascript; charset=utf-8`.
+24. `totalAmount(listInvoices())` es `4690000`. `totalAmount([F-1001, F-1002])` es `2140000`. `totalAmount([])` es `0`.
+25. `queryString({ status: '', month: '' })` es `''`. `queryString({ status: 'open', month: '2026-08' })` es `'?status=open&month=2026-08'`. `queryString({ status: '', month: '2026-08' })` es `'?month=2026-08'`.
+26. `GET /no-existe` responde `404`.
+27. Los criterios 1 a 14 siguen en verde: el panel no cambia la CLI.
+
 ## Fuera de alcance
 
 - Formato específico del banco (columnas, orden o separador distintos) y el envío al banco.
 - Archivos `.xlsx` u otros formatos que no sean CSV.
-- Traducir los estados al español (`pagada`, `abierta`, `anulada`).
-- Filtros por cliente, estado, rango de fechas u otros fuera de `--month`.
-- Elegir el mes con palabras (`--month agosto`) o nombrar el archivo automáticamente según el mes.
-- Endpoint HTTP, login, interfaz web o despliegue.
+- Traducir los estados al español (`pagada`, `abierta`, `anulada`) en el CSV o en la tabla. En el panel solo van en español las etiquetas del filtro de estado.
+- En la CLI, filtros fuera de `--month` y `--include-void`. En el panel, filtros fuera de estado y mes: búsqueda por cliente, rango de fechas, varios estados a la vez.
+- Elegir el mes con palabras (`--month agosto`) o nombrar el archivo automáticamente según el mes. La descarga del panel siempre se llama `facturas.csv`.
+- Login, base de datos, despliegue y frameworks de front.
+- La Story 4 sugerida en T-02 (monto en pesos chilenos, anuladas en gris, búsqueda por cliente): es para equipos de 4 y este equipo es de 3.
+- Métodos distintos de `GET`, puerto configurable y qué pasa si el 3000 está ocupado.
+- Tests de la página en un navegador: no hay dependencias para eso. El comportamiento en el navegador se revisa a mano (ver Supuestos).
 - Cambiar `list`, `get`, `listInvoices()` o los datos de `src/data/invoices.json`.
 - Agregar dependencias npm.
 - Validar o normalizar `src/data/invoices.json`. Con datos fuera de la forma de los Supuestos (falta `issuedAt`, JSON inválido o `status` con otra capitalización), el comportamiento del comando no está definido y puede terminar con stack trace. Un `"VOID"` en mayúsculas no cuenta como anulada.
@@ -82,3 +135,5 @@ Con el fixture actual (`F-1001` y `F-1002` de agosto 2026; `F-1003` anulada y `F
 
 - Los Excel de tesorería usan configuración regional en español, así que separan por `;` al abrir con doble clic. Un Excel en inglés vería una sola columna. Como "abre bien en Excel" no se puede automatizar, antes de cerrar el ticket María abre a mano el CSV de agosto (`--month 2026-08`) y confirma columnas y acentos.
 - `src/data/invoices.json` es JSON válido y cada factura trae `id` y `client` como texto, `issuedAt` como `AAAA-MM-DD`, `amount` como número en pesos, normalmente entero (puede ser negativo; si trae decimales, aplica el criterio 13) y `status` en minúsculas (`paid`, `open` o `void`).
+- El panel corre en el computador de María y nadie más lo usa: escucha solo en la máquina local, sin login.
+- Lo que hace la página en el navegador no se automatiza. Antes de cerrar T-02, María corre `node src/server.js`, abre http://localhost:3000 y confirma: sin filtros ve las 4 facturas y el total `4690000`; con Abierta ve `F-1002` y `F-1004` y el total `1340000`; con Abierta y agosto 2026 ve solo `F-1002`, y "Descargar CSV" baja un `facturas.csv` con esa fila que abre bien en Excel.
