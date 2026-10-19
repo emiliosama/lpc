@@ -63,3 +63,28 @@ test('toCsv prefixes a client that starts with a minus sign (C11)', () => {
   const csv = toCsv([{ id: 'F-7', client: '-Sur', issuedAt: '2026-08-01', amount: 1000, status: 'open' }])
   assert.equal(csv, "id;cliente;fecha;monto;estado\r\nF-7;'-Sur;2026-08-01;1000;open\r\n")
 })
+
+test('toCsv neutralizes a cliente that starts with a tab or a carriage return (C12)', () => {
+  const csv = toCsv([
+    { id: 'F-9', client: '\tSur', issuedAt: '2026-08-01', amount: 1000, status: 'open' },
+    { id: 'F-8', client: '\rSur', issuedAt: '2026-08-01', amount: 1000, status: 'open' },
+  ])
+  assert.equal(
+    csv,
+    'id;cliente;fecha;monto;estado\r\n' +
+      "F-9;'\tSur;2026-08-01;1000;open\r\n" +
+      'F-8;"\'\rSur";2026-08-01;1000;open\r\n',
+  )
+})
+
+test('toCsv writes a decimal monto with a decimal comma (C13)', () => {
+  const csv = toCsv([{ id: 'F-9', client: 'Sur', issuedAt: '2026-08-01', amount: 1250000.5, status: 'open' }])
+  assert.equal(csv, 'id;cliente;fecha;monto;estado\r\nF-9;Sur;2026-08-01;1250000,5;open\r\n')
+})
+
+test('toCsv writes null, undefined or missing fields as empty cells (C14)', () => {
+  const base = { id: 'F-9', issuedAt: '2026-08-01', amount: 1000, status: 'open' }
+  for (const invoice of [{ ...base, client: null }, { ...base, client: undefined }, base]) {
+    assert.equal(toCsv([invoice]), 'id;cliente;fecha;monto;estado\r\nF-9;;2026-08-01;1000;open\r\n')
+  }
+})
