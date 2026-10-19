@@ -48,7 +48,24 @@
       main { max-width: 960px; margin: 0 auto; padding: 40px 16px 64px; }
       header { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
       .eyebrow { margin: 0 0 4px; color: var(--muted); font-size: 13px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
-      h1 { margin: 0; font-size: 28px; font-weight: 650; letter-spacing: -0.02em; }
+      h1 { margin: 0; font-size: 28px; font-weight: 650; letter-spacing: -0.02em; display: flex; align-items: center; gap: 10px; }
+      .sprite { width: 40px; height: 40px; overflow: visible; }
+      .sprite-hoja { animation: flotar 3s ease-in-out infinite; transform-origin: 24px 40px; }
+      .sprite-papel { fill: var(--surface); stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+      .sprite-dobles { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; }
+      .sprite-linea { stroke: var(--muted); stroke-width: 2.4; stroke-linecap: round; stroke-dasharray: 20; stroke-dashoffset: 20; animation: escribir 3s ease-in-out infinite; }
+      .sprite-linea.l2 { animation-delay: 0.2s; }
+      .sprite-linea.l3 { animation-delay: 0.4s; }
+      .sprite-sello { transform-box: fill-box; transform-origin: center; animation: sellar 3s ease-in-out infinite; }
+      .sprite-sello circle { fill: var(--paid-bg); stroke: var(--paid-fg); stroke-width: 2; }
+      .sprite-sello path { fill: none; stroke: var(--paid-fg); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+      @keyframes flotar { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-4px) rotate(3deg); } }
+      @keyframes escribir { 0%, 10% { stroke-dashoffset: 20; } 40%, 85% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 20; } }
+      @keyframes sellar { 0%, 45% { transform: scale(0); opacity: 0; } 55% { transform: scale(1.25); opacity: 1; } 62%, 85% { transform: scale(1); opacity: 1; } 100% { transform: scale(0); opacity: 0; } }
+      @media (prefers-reduced-motion: reduce) {
+        .sprite-hoja, .sprite-linea, .sprite-sello { animation: none; }
+        .sprite-linea { stroke-dashoffset: 0; }
+      }
       #download {
         display: inline-flex; align-items: center; gap: 8px;
         padding: 10px 16px; border-radius: 10px;
@@ -94,7 +111,22 @@
       <header>
         <div>
           <p class="eyebrow">Andes Lab · Tesorería</p>
-          <h1>Facturas</h1>
+          <h1>
+            Facturas
+            <svg class="sprite" viewBox="0 0 48 48" aria-hidden="true">
+              <g class="sprite-hoja">
+                <path class="sprite-papel" d="M10 4h22l8 8v30l-4-3-4 3-4-3-4 3-4-3-4 3-4-3-2 1.5z" />
+                <path class="sprite-dobles" d="M32 4v8h8" />
+                <line class="sprite-linea l1" x1="15" y1="16" x2="28" y2="16" />
+                <line class="sprite-linea l2" x1="15" y1="22" x2="34" y2="22" />
+                <line class="sprite-linea l3" x1="15" y1="28" x2="30" y2="28" />
+                <g class="sprite-sello">
+                  <circle cx="33" cy="34" r="7" />
+                  <path d="m29.8 34 2.2 2.2 4.2-4.4" />
+                </g>
+              </g>
+            </svg>
+          </h1>
         </div>
         <div class="descarga">
           <label>Tu nombre
