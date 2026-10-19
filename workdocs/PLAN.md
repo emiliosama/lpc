@@ -36,6 +36,28 @@ Sin dependencias npm nuevas: solo `node:fs`, `node:path`, `node:os`, `node:child
 2. Escapa cada campo con una función interna `escapeField(value)`: convierte el valor a `String` y, si contiene `;`, `"`, `\r` o `\n`, lo envuelve en comillas dobles y duplica las `"` internas. `amount` sale como `String(amount)`, sin separadores de miles.
 3. No toca `src/cli.js`, `src/invoices.js` ni el fixture.
 
+**Casos borde (revisados el 2026-10-19 contra `toCsv`):**
+
+Dentro de la spec, ya funcionan y ningún test los cubre todavía:
+
+- Arreglo vacío `[]`: devuelve solo el encabezado con `\r\n`. C5 depende de esto; hoy solo lo prueba la Story 3.
+- Salto de línea en un campo (`\n` o `\r`): va entre comillas, por ejemplo `"Linea1\nLinea2"`. Lo pide el Alcance, pero C8 solo prueba `;` y `"`.
+- Campo que es solo comillas (`""`): sale `""""""`.
+
+Sin acción, porque el comportamiento es correcto:
+
+- Coma en un campo (`Sur, Ltda`): sale sin comillas, porque el separador es `;`.
+- Acentos (`Ñuñoa Ingeniería`): salen tal cual. El BOM lo pone la Story 3.
+- Espacios al inicio o al final: se conservan.
+
+Fuera de la spec. Pendiente de decidir con el equipo o con María; no entran al PR hasta que la spec los nombre:
+
+- Fórmula en un campo (cliente que empieza con `=`, `+`, `-` o `@`): sale tal cual y Excel la ejecuta al abrir el archivo. Es el único riesgo de seguridad. El fixture no lo dispara.
+- `amount` con decimales (`1250000.5`): sale `1250000.5`, y en Excel es-CL el punto no es separador decimal. La spec dice que el monto es entero.
+- Campo `null`, `undefined` o ausente: sale el texto `null` o `undefined` en la celda. El fixture siempre trae los 5 campos.
+- `toCsv(null)` o un valor que no es arreglo: lanza `TypeError`. El contrato dice que recibe un arreglo.
+- Excel convierte `2026-08-02` en fecha y puede mostrarla como `02-08-2026`. Es comportamiento de Excel, no de `toCsv`; lo revisa María a mano (Supuestos de la spec).
+
 **Test de aceptación (falla antes de codear):** `test/invoices-csv.test.js`. Cubre C8 tal cual y el contenido de C1 sin BOM: `toCsv` sobre `F-1001` y `F-1002` devuelve las 3 líneas exactas con `\r\n`, y el resultado no empieza con `﻿`. Comando: `npm test`. Rojo esperado: `ERR_MODULE_NOT_FOUND` de `src/invoices-csv.js`.
 
 ### Story 2: `feat/T-01-story-2`
