@@ -242,7 +242,7 @@
                   return tr
                 })),
           )
-          total.textContent = String(totalAmount(facturas))
+          total.textContent = formatAmount(totalAmount(facturas))
           cantidad.textContent = String(facturas.length)
         } catch (err) {
           filas.replaceChildren()

@@ -60,8 +60,8 @@ Al cerrar, `node src/server.js` levanta un servidor HTTP local en el puerto 3000
 - **`GET /`:** `200`, `Content-Type: text/html; charset=utf-8`. Un solo HTML con:
   - un `<select id="status">` con las opciones `""` (Todas), `paid` (Pagada), `open` (Abierta) y `void` (Anulada);
   - un `<input id="month" type="month">`;
-  - una `<table>` con las columnas id, cliente, fecha, monto y estado, con `monto` en pesos chilenos: `  - una `<table>` con las columnas id, cliente, fecha, monto y estado,  y punto como separador de miles (`1250000` se ve `$1.250.000`; cambio del 2026-10-19), `fecha` como `DD-MM-AAAA` (`2026-08-02` se ve `02-08-2026`; cambio del 2026-10-19) y `estado` en español con las mismas etiquetas del filtro: `Pagada`, `Abierta` y `Anulada` (cambio del 2026-10-19). Un estado fuera de esos tres se muestra tal cual;
-  - un elemento `id="total"` con la suma de `amount` de las filas que se ven en la tabla, anuladas incluidas si se ven;
+  - una `<table>` con las columnas id, cliente, fecha, monto y estado, con `monto` en pesos chilenos: `$` y punto como separador de miles (`1250000` se ve `$1.250.000`; cambio del 2026-10-19), `fecha` como `DD-MM-AAAA` (`2026-08-02` se ve `02-08-2026`; cambio del 2026-10-19) y `estado` en español con las mismas etiquetas del filtro: `Pagada`, `Abierta` y `Anulada` (cambio del 2026-10-19). Un estado fuera de esos tres se muestra tal cual;
+  - un elemento `id="total"` con la suma de `amount` de las filas que se ven en la tabla, anuladas incluidas si se ven, con el mismo formato que la columna `monto` (`$4.690.000`);
   - un enlace `id="download"` con el texto `Descargar CSV`, que apunta a `/api/export.csv` con los filtros que están elegidos.
   Al cambiar un filtro, la tabla, el total y el enlace se actualizan sin recargar la página.
 - **`GET /panel.js`:** `200`, `Content-Type: text/javascript; charset=utf-8`. Es el módulo JS que importa la página. Exporta dos funciones puras, que se prueban con `node:test` sin navegador:
@@ -126,7 +126,7 @@ Con el mismo fixture. Cada test levanta `createServer()` en un puerto libre y co
 31. `queryString({ status: 'open', month: '', by: ' Ana ' })` es `'?status=open&by=Ana'`, y `queryString({ status: '', month: '', by: '   ' })` es `''`. El HTML de `GET /` contiene `id="by"` y el texto `Tu nombre`.
 32. `statusLabel('paid')` es `'Pagada'`, `statusLabel('open')` es `'Abierta'`, `statusLabel('void')` es `'Anulada'` y `statusLabel('VOID')` es `'VOID'`. `src/web/panel.js` la exporta. El CSV sigue con `paid`, `open` y `void` (C1 y C20 no cambian).
 33. `formatDate('2026-08-02')` es `'02-08-2026'`. Un valor que no es `AAAA-MM-DD` (por ejemplo `'2026-8-2'` o `''`) sale tal cual. `src/web/panel.js` la exporta. El CSV y la API siguen con `AAAA-MM-DD` (C1 y C20 no cambian).
-34. `formatAmount(1250000)` es `'$1.250.000'`, `formatAmount(0)` es `'$0'`, `formatAmount(-500)` es `'-$500'` y `formatAmount(1250000.5)` es `'$1.250.000,5'`. `src/web/panel.js` la exporta. El total de las tarjetas sigue como número (C24), y el CSV y la API siguen sin separadores ni `$` (C1 y C20 no cambian).
+34. `formatAmount(1250000)` es `'$1.250.000'`, `formatAmount(0)` es `'$0'`, `formatAmount(-500)` es `'-$500'` y `formatAmount(1250000.5)` es `'$1.250.000,5'`. `src/web/panel.js` la exporta. La página muestra con `formatAmount` tanto la columna `monto` como el total de las tarjetas; `totalAmount` sigue devolviendo un número (C24). El CSV y la API siguen sin separadores ni `$` (C1 y C20 no cambian).
 
 ## Fuera de alcance
 
@@ -150,4 +150,4 @@ Con el mismo fixture. Cada test levanta `createServer()` en un puerto libre y co
 - Los Excel de tesorería usan configuración regional en español, así que separan por `;` al abrir con doble clic. Un Excel en inglés vería una sola columna. Como "abre bien en Excel" no se puede automatizar, antes de cerrar el ticket María abre a mano el CSV de agosto (`--month 2026-08`) y confirma columnas y acentos.
 - `src/data/invoices.json` es JSON válido y cada factura trae `id` y `client` como texto, `issuedAt` como `AAAA-MM-DD`, `amount` como número en pesos, normalmente entero (puede ser negativo; si trae decimales, aplica el criterio 13) y `status` en minúsculas (`paid`, `open` o `void`).
 - El panel corre en el computador de María y nadie más lo usa: escucha solo en la máquina local, sin login.
-- Lo que hace la página en el navegador no se automatiza. Antes de cerrar T-02, María corre `node src/server.js`, abre http://localhost:3000 y confirma: sin filtros ve las 4 facturas y el total `4690000`; con Abierta ve `F-1002` y `F-1004` y el total `1340000`; con Abierta y agosto 2026 ve solo `F-1002`, y "Descargar CSV" baja un `facturas.csv` con esa fila que abre bien en Excel.
+- Lo que hace la página en el navegador no se automatiza. Antes de cerrar T-02, María corre `node src/server.js`, abre http://localhost:3000 y confirma: sin filtros ve las 4 facturas y el total `$4.690.000`; con Abierta ve `F-1002` y `F-1004` y el total `$1.340.000`; con Abierta y agosto 2026 ve solo `F-1002`, y "Descargar CSV" baja un `facturas.csv` con esa fila que abre bien en Excel.
