@@ -45,10 +45,17 @@ Una tarea acotada y su resumen. Si hubo implementación y falta esta línea, M4 
 
 ## Día 3
 
-**Mergeó:**
+**Mergeó (2026-10-19, en el orden del plan: 2, 1 y 3 al final):**
+
+- T-01-story-2, PR #6 (dzumelzu): `src/export-options.js` con `parseExportArgs`, `selectInvoices` y `UsageError` (C2–C6).
+- T-01-story-1, PR #8 (Gerardo): `src/invoices-csv.js` con `toCsv` y el escape de campos (C1 sin BOM y C8).
+- T-01-story-3, PR #7 (Emilio): comando `export-csv` en `src/cli.js`, con BOM, escritura del archivo y errores (C1–C7, C10). La CI (Ubuntu, Node 20) pasó en verde. En un checkout limpio de `main` tras el merge: `npm test` da `# tests 40`, `# pass 40`, `# fail 0`, y `export-csv --month 2026-08` escribe `EF BB BF` más las 3 líneas exactas de C1. C9 sigue en verde.
 
 **Quedó fuera (gap, no vendido como merge):**
 
+- Revisión manual en Excel: María (tesorería) todavía no abre el CSV de agosto (`node src/cli.js export-csv --month 2026-08`) para confirmar columnas y acentos, según los Supuestos de la spec. Es la única verificación que no se puede automatizar. El ticket T-01 no se cierra hasta que confirme.
+
 **PRs:**
 - T-01-story-1 (Gerardo): https://github.com/emiliosama/lpc/pull/8
+- T-01-story-2 (dzumelzu): https://github.com/emiliosama/lpc/pull/6
 - T-01-story-3 (Emilio): https://github.com/emiliosama/lpc/pull/7
