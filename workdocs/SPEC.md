@@ -58,17 +58,23 @@ Al cerrar, `node src/server.js` levanta un servidor HTTP local en el puerto 3000
 - **`GET /api/invoices?status=&month=`:** `200`, `Content-Type: application/json; charset=utf-8`, y el cuerpo es el arreglo de facturas filtradas, con los mismos objetos de `invoices.json`.
 - **`GET /api/export.csv?status=&month=`:** `200`, `Content-Type: text/csv; charset=utf-8`, `Content-Disposition: attachment; filename="facturas.csv"`. El cuerpo es BOM UTF-8 más `toCsv(filtradas)`: los mismos bytes que escribe `export-csv` para las mismas facturas, con todas las reglas de formato de T-01.
 - **`GET /`:** `200`, `Content-Type: text/html; charset=utf-8`. Un solo HTML con:
-  - un `<select id="status">` con las opciones `""` (Todas), `paid` (Pagada), `open` (Abierta) y `void` (Anulada). Solo las etiquetas del filtro van en español;
+  - un `<select id="status">` con las opciones `""` (Todas), `paid` (Pagada), `open` (Abierta) y `void` (Anulada);
   - un `<input id="month" type="month">`;
-  - una `<table>` con las columnas id, cliente, fecha, monto y estado, con los valores tal como en el CSV (`monto` como número sin separadores y `estado` como `paid`, `open` o `void`);
-  - un elemento `id="total"` con la suma de `amount` de las filas que se ven en la tabla, anuladas incluidas si se ven;
+  - una `<table>` con las columnas id, cliente, fecha, monto y estado, con `monto` en pesos chilenos: `$` y punto como separador de miles (`1250000` se ve `$1.250.000`; cambio del 2026-10-19), `fecha` como `DD-MM-AAAA` (`2026-08-02` se ve `02-08-2026`; cambio del 2026-10-19) y `estado` en español con las mismas etiquetas del filtro: `Pagada`, `Abierta` y `Anulada` (cambio del 2026-10-19). Un estado fuera de esos tres se muestra tal cual;
+  - un elemento `id="total"` con la suma de `amount` de las filas que se ven en la tabla, anuladas incluidas si se ven, con el mismo formato que la columna `monto` (`$4.690.000`);
   - un enlace `id="download"` con el texto `Descargar CSV`, que apunta a `/api/export.csv` con los filtros que están elegidos.
   Al cambiar un filtro, la tabla, el total y el enlace se actualizan sin recargar la página.
 - **`GET /panel.js`:** `200`, `Content-Type: text/javascript; charset=utf-8`. Es el módulo JS que importa la página. Exporta dos funciones puras, que se prueban con `node:test` sin navegador:
   - `totalAmount(invoices)`: la suma de `amount`. `0` para un arreglo vacío.
   - `queryString({ status, month })`: `''` si los dos están vacíos; si no, `?` más los no vacíos, en ese orden (`?status=open&month=2026-08`, `?month=2026-08`).
 - Cualquier otra ruta responde `404`.
-- **Contrato del servidor:** `src/server.js` exporta `createServer()`, que devuelve un `http.Server` sin escuchar. Solo cuando se ejecuta con `node src/server.js` escucha en el 3000. Los tests lo levantan en un puerto libre (`listen(0)`).
+- **Quién descarga (agregado el 2026-10-19):** tesorería quiere saber quién bajó cada CSV. No hay login: el nombre lo declara la persona.
+  - La página tiene un `<input id="by">` con la etiqueta "Tu nombre". Mientras esté vacío (después de `trim()`), `#download` queda deshabilitado: sin `href` y con `aria-disabled="true"`. Con un nombre, el enlace apunta a `/api/export.csv` con los filtros y `by=<nombre>`. Después de cada clic en "Descargar CSV", la descarga sale con ese nombre y el campo `#by` queda vacío, así que la próxima persona escribe el suyo (cambio del 2026-10-19). El nombre no se guarda en el navegador.
+  - `queryString({ status, month, by })` agrega `by` al final, sin espacios al inicio ni al final, solo si no queda vacío.
+  - `/api/export.csv` acepta `by` opcional. No cambia la respuesta: los bytes son los mismos que sin `by`.
+  - Por cada respuesta `200` de `/api/export.csv`, el servidor escribe una línea en stdout: `Descarga CSV: <nombre> · <filtros> · <fecha ISO>`. `<nombre>` es `by` sin caracteres de control, sin espacios al inicio ni al final y con 80 caracteres como máximo, o `(sin nombre)` si queda vacío. `<filtros>` es `status=<s> month=<m>` con los que vengan, o `sin filtros`. Con `400` no escribe nada. No se guarda nada en disco.
+- **Contrato del servidor:** `src/server.js` exporta `createServer({ log } = {})`, que devuelve un `http.Server` sin escuchar. `log(línea)` recibe las líneas de descarga; por defecto no hace nada. Solo cuando se ejecuta con `node src/server.js` escucha en el 3000 y usa `console.log`. Los tests lo levantan en un puerto libre (`listen(0)`).
+- **Contrato del registro:** `src/download-log.js` exporta `downloadLogLine({ by, status, month }, date)`, que devuelve la línea sin salto de línea final.
 
 ## Aceptación observable
 
@@ -114,17 +120,25 @@ Con el mismo fixture. Cada test levanta `createServer()` en un puerto libre y co
 25. `queryString({ status: '', month: '' })` es `''`. `queryString({ status: 'open', month: '2026-08' })` es `'?status=open&month=2026-08'`. `queryString({ status: '', month: '2026-08' })` es `'?month=2026-08'`.
 26. `GET /no-existe` responde `404`.
 27. Los criterios 1 a 14 siguen en verde: el panel no cambia la CLI.
+28. Con `createServer({ log })`, `GET /api/export.csv?month=2026-08&by=María` responde los mismos bytes que el criterio 20, y `log` recibe una sola línea que empieza con `Descarga CSV: María · month=2026-08 · ` y termina en una fecha ISO (`new Date(x).toISOString() === x`).
+29. Sin `by` y sin filtros, la línea empieza con `Descarga CSV: (sin nombre) · sin filtros · `. `?status=anulada&by=Ana` responde `400` y `log` no recibe nada. `GET /api/invoices?by=Ana` no escribe línea.
+30. `downloadLogLine({ by: '  Ana\n\u001b[31mX  ', status: 'open', month: '2026-08' }, new Date('2026-10-19T12:00:00Z'))` es exactamente `Descarga CSV: Ana[31mX · status=open month=2026-08 · 2026-10-19T12:00:00.000Z`. Un `by` de 100 letras `a` sale con 80.
+31. `queryString({ status: 'open', month: '', by: ' Ana ' })` es `'?status=open&by=Ana'`, y `queryString({ status: '', month: '', by: '   ' })` es `''`. El HTML de `GET /` contiene `id="by"` y el texto `Tu nombre`.
+32. `statusLabel('paid')` es `'Pagada'`, `statusLabel('open')` es `'Abierta'`, `statusLabel('void')` es `'Anulada'` y `statusLabel('VOID')` es `'VOID'`. `src/web/panel.js` la exporta. El CSV sigue con `paid`, `open` y `void` (C1 y C20 no cambian).
+33. `formatDate('2026-08-02')` es `'02-08-2026'`. Un valor que no es `AAAA-MM-DD` (por ejemplo `'2026-8-2'` o `''`) sale tal cual. `src/web/panel.js` la exporta. El CSV y la API siguen con `AAAA-MM-DD` (C1 y C20 no cambian).
+34. `formatAmount(1250000)` es `'$1.250.000'`, `formatAmount(0)` es `'$0'`, `formatAmount(-500)` es `'-$500'` y `formatAmount(1250000.5)` es `'$1.250.000,5'`. `src/web/panel.js` la exporta. La página muestra con `formatAmount` tanto la columna `monto` como el total de las tarjetas; `totalAmount` sigue devolviendo un número (C24). El CSV y la API siguen sin separadores ni `$` (C1 y C20 no cambian).
 
 ## Fuera de alcance
 
 - Formato específico del banco (columnas, orden o separador distintos) y el envío al banco.
 - Archivos `.xlsx` u otros formatos que no sean CSV.
-- Traducir los estados al español (`pagada`, `abierta`, `anulada`) en el CSV o en la tabla. En el panel solo van en español las etiquetas del filtro de estado.
+- Traducir los estados al español o cambiar el formato de fecha en el CSV o en la API: siguen como `paid`, `open` y `void`, y `AAAA-MM-DD`. En la tabla del panel, el estado va en español y la fecha como `DD-MM-AAAA`.
 - En la CLI, filtros fuera de `--month` y `--include-void`. En el panel, filtros fuera de estado y mes: búsqueda por cliente, rango de fechas, varios estados a la vez.
 - Elegir el mes con palabras (`--month agosto`) o nombrar el archivo automáticamente según el mes. La descarga del panel siempre se llama `facturas.csv`.
 - Login, base de datos, despliegue y frameworks de front.
-- La Story 4 sugerida en T-02 (monto en pesos chilenos, anuladas en gris, búsqueda por cliente): es para equipos de 4 y este equipo es de 3.
+- El resto de la Story 4 sugerida en T-02 (anuladas en gris, búsqueda por cliente): es para equipos de 4 y este equipo es de 3. El monto en pesos chilenos en la tabla sí entró (C34).
 - Métodos distintos de `GET`, puerto configurable y qué pasa si el 3000 está ocupado.
+- Verificar la identidad de quien descarga: el nombre es declarado, no autenticado. Guardar las descargas en un archivo o base de datos, o mostrarlas en la página.
 - Tests de la página en un navegador: no hay dependencias para eso. El comportamiento en el navegador se revisa a mano (ver Supuestos).
 - Cambiar `list`, `get`, `listInvoices()` o los datos de `src/data/invoices.json`.
 - Agregar dependencias npm.
@@ -136,4 +150,4 @@ Con el mismo fixture. Cada test levanta `createServer()` en un puerto libre y co
 - Los Excel de tesorería usan configuración regional en español, así que separan por `;` al abrir con doble clic. Un Excel en inglés vería una sola columna. Como "abre bien en Excel" no se puede automatizar, antes de cerrar el ticket María abre a mano el CSV de agosto (`--month 2026-08`) y confirma columnas y acentos.
 - `src/data/invoices.json` es JSON válido y cada factura trae `id` y `client` como texto, `issuedAt` como `AAAA-MM-DD`, `amount` como número en pesos, normalmente entero (puede ser negativo; si trae decimales, aplica el criterio 13) y `status` en minúsculas (`paid`, `open` o `void`).
 - El panel corre en el computador de María y nadie más lo usa: escucha solo en la máquina local, sin login.
-- Lo que hace la página en el navegador no se automatiza. Antes de cerrar T-02, María corre `node src/server.js`, abre http://localhost:3000 y confirma: sin filtros ve las 4 facturas y el total `4690000`; con Abierta ve `F-1002` y `F-1004` y el total `1340000`; con Abierta y agosto 2026 ve solo `F-1002`, y "Descargar CSV" baja un `facturas.csv` con esa fila que abre bien en Excel.
+- Lo que hace la página en el navegador no se automatiza. Antes de cerrar T-02, María corre `node src/server.js`, abre http://localhost:3000 y confirma: sin filtros ve las 4 facturas y el total `$4.690.000`; con Abierta ve `F-1002` y `F-1004` y el total `$1.340.000`; con Abierta y agosto 2026 ve solo `F-1002`, y "Descargar CSV" baja un `facturas.csv` con esa fila que abre bien en Excel.

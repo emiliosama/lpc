@@ -1,5 +1,6 @@
 import { createServer as createHttpServer } from 'node:http'
 import { pathToFileURL } from 'node:url'
+import { downloadLogLine } from './download-log.js'
 import { sendJson } from './http-send.js'
 import { filterInvoices, parseInvoiceQuery, QueryError } from './invoice-query.js'
 import { listInvoices } from './invoices.js'
@@ -18,14 +19,28 @@ function handleInvoices(req, res, url) {
   sendJson(res, 200, filterInvoices(listInvoices(), query))
 }
 
-const routes = {
-  '/': handlePage,
-  '/panel.js': handlePanelJs,
-  '/api/invoices': handleInvoices,
-  '/api/export.csv': handleExportCsv,
+function exportWithLog(log) {
+  return (req, res, url) => {
+    handleExportCsv(req, res, url)
+    if (res.statusCode !== 200) return
+    const { searchParams } = url
+    log(
+      downloadLogLine(
+        { by: searchParams.get('by'), status: searchParams.get('status'), month: searchParams.get('month') },
+        new Date(),
+      ),
+    )
+  }
 }
 
-export function createServer() {
+export function createServer({ log = () => {} } = {}) {
+  const routes = {
+    '/': handlePage,
+    '/panel.js': handlePanelJs,
+    '/api/invoices': handleInvoices,
+    '/api/export.csv': exportWithLog(log),
+  }
+
   return createHttpServer((req, res) => {
     const url = new URL(req.url, 'http://localhost')
     const handler = req.method === 'GET' ? routes[url.pathname] : undefined
@@ -39,7 +54,7 @@ export function createServer() {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
-  createServer().listen(3000, '127.0.0.1', () => {
+  createServer({ log: console.log }).listen(3000, '127.0.0.1', () => {
     console.log('Panel de facturas: http://localhost:3000')
   })
 }
