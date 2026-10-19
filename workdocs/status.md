@@ -57,6 +57,6 @@ Una tarea acotada y su resumen. Si hubo implementación y falta esta línea, M4 
 
 **PRs:**
 - T-01-story-1 (Gerardo): https://github.com/emiliosama/lpc/pull/8
-- T-01-story-1, C11 (Gerardo): PENDIENTE
+- T-01-story-1, C11 (Gerardo): https://github.com/emiliosama/lpc/pull/13
 - T-01-story-2 (dzumelzu): https://github.com/emiliosama/lpc/pull/6
 - T-01-story-3 (Emilio): https://github.com/emiliosama/lpc/pull/7
