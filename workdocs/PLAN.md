@@ -184,6 +184,14 @@ Mientras la Story 1 no esté en `main`, codea contra los contratos. `panel.js`, 
 
 Comando: `npm test`. Rojo esperado: `ERR_MODULE_NOT_FOUND` de `src/web/panel.js`.
 
+**Extensión: quién descarga (C28 a C31, agregada el 2026-10-19 en la misma rama):**
+
+1. Crea `src/download-log.js` con `downloadLogLine({ by, status, month }, date)`: quita los caracteres de control (`p{Cc}`), hace `trim()`, corta en 80 y usa `(sin nombre)` si queda vacío.
+2. `createServer({ log } = {})`: `/api/export.csv` se envuelve en `server.js` y, si la respuesta fue `200`, llama a `log(downloadLogLine(...))`. `src/routes/export-csv.js` (Story 3) no cambia. Al correr `node src/server.js`, `log` es `console.log`; en los tests es un arreglo.
+3. `queryString` suma `by`. La página agrega `#by` ("Tu nombre") y deshabilita `#download` mientras esté vacío. Recuerda el nombre en `localStorage`, con `try/catch`.
+
+**Test de aceptación:** `test/download-log.test.js`. Rojo esperado: `ERR_MODULE_NOT_FOUND` de `src/download-log.js`.
+
 ### Story 3: `feat/T-02-story-3` (descarga)
 
 **Persona (propuesta):** Gerardo

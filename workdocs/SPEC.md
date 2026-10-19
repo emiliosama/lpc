@@ -68,7 +68,13 @@ Al cerrar, `node src/server.js` levanta un servidor HTTP local en el puerto 3000
   - `totalAmount(invoices)`: la suma de `amount`. `0` para un arreglo vacío.
   - `queryString({ status, month })`: `''` si los dos están vacíos; si no, `?` más los no vacíos, en ese orden (`?status=open&month=2026-08`, `?month=2026-08`).
 - Cualquier otra ruta responde `404`.
-- **Contrato del servidor:** `src/server.js` exporta `createServer()`, que devuelve un `http.Server` sin escuchar. Solo cuando se ejecuta con `node src/server.js` escucha en el 3000. Los tests lo levantan en un puerto libre (`listen(0)`).
+- **Quién descarga (agregado el 2026-10-19):** tesorería quiere saber quién bajó cada CSV. No hay login: el nombre lo declara la persona.
+  - La página tiene un `<input id="by">` con la etiqueta "Tu nombre". Mientras esté vacío (después de `trim()`), `#download` queda deshabilitado: sin `href` y con `aria-disabled="true"`. Con un nombre, el enlace apunta a `/api/export.csv` con los filtros y `by=<nombre>`.
+  - `queryString({ status, month, by })` agrega `by` al final, sin espacios al inicio ni al final, solo si no queda vacío.
+  - `/api/export.csv` acepta `by` opcional. No cambia la respuesta: los bytes son los mismos que sin `by`.
+  - Por cada respuesta `200` de `/api/export.csv`, el servidor escribe una línea en stdout: `Descarga CSV: <nombre> · <filtros> · <fecha ISO>`. `<nombre>` es `by` sin caracteres de control, sin espacios al inicio ni al final y con 80 caracteres como máximo, o `(sin nombre)` si queda vacío. `<filtros>` es `status=<s> month=<m>` con los que vengan, o `sin filtros`. Con `400` no escribe nada. No se guarda nada en disco.
+- **Contrato del servidor:** `src/server.js` exporta `createServer({ log } = {})`, que devuelve un `http.Server` sin escuchar. `log(línea)` recibe las líneas de descarga; por defecto no hace nada. Solo cuando se ejecuta con `node src/server.js` escucha en el 3000 y usa `console.log`. Los tests lo levantan en un puerto libre (`listen(0)`).
+- **Contrato del registro:** `src/download-log.js` exporta `downloadLogLine({ by, status, month }, date)`, que devuelve la línea sin salto de línea final.
 
 ## Aceptación observable
 
@@ -114,6 +120,10 @@ Con el mismo fixture. Cada test levanta `createServer()` en un puerto libre y co
 25. `queryString({ status: '', month: '' })` es `''`. `queryString({ status: 'open', month: '2026-08' })` es `'?status=open&month=2026-08'`. `queryString({ status: '', month: '2026-08' })` es `'?month=2026-08'`.
 26. `GET /no-existe` responde `404`.
 27. Los criterios 1 a 14 siguen en verde: el panel no cambia la CLI.
+28. Con `createServer({ log })`, `GET /api/export.csv?month=2026-08&by=María` responde los mismos bytes que el criterio 20, y `log` recibe una sola línea que empieza con `Descarga CSV: María · month=2026-08 · ` y termina en una fecha ISO (`new Date(x).toISOString() === x`).
+29. Sin `by` y sin filtros, la línea empieza con `Descarga CSV: (sin nombre) · sin filtros · `. `?status=anulada&by=Ana` responde `400` y `log` no recibe nada. `GET /api/invoices?by=Ana` no escribe línea.
+30. `downloadLogLine({ by: '  Ana\n\u001b[31mX  ', status: 'open', month: '2026-08' }, new Date('2026-10-19T12:00:00Z'))` es exactamente `Descarga CSV: Ana[31mX · status=open month=2026-08 · 2026-10-19T12:00:00.000Z`. Un `by` de 100 letras `a` sale con 80.
+31. `queryString({ status: 'open', month: '', by: ' Ana ' })` es `'?status=open&by=Ana'`, y `queryString({ status: '', month: '', by: '   ' })` es `''`. El HTML de `GET /` contiene `id="by"` y el texto `Tu nombre`.
 
 ## Fuera de alcance
 
@@ -125,6 +135,7 @@ Con el mismo fixture. Cada test levanta `createServer()` en un puerto libre y co
 - Login, base de datos, despliegue y frameworks de front.
 - La Story 4 sugerida en T-02 (monto en pesos chilenos, anuladas en gris, búsqueda por cliente): es para equipos de 4 y este equipo es de 3.
 - Métodos distintos de `GET`, puerto configurable y qué pasa si el 3000 está ocupado.
+- Verificar la identidad de quien descarga: el nombre es declarado, no autenticado. Guardar las descargas en un archivo o base de datos, o mostrarlas en la página.
 - Tests de la página en un navegador: no hay dependencias para eso. El comportamiento en el navegador se revisa a mano (ver Supuestos).
 - Cambiar `list`, `get`, `listInvoices()` o los datos de `src/data/invoices.json`.
 - Agregar dependencias npm.

@@ -57,6 +57,8 @@
       }
       #download:hover { background: var(--accent-hover); }
       #download svg { width: 18px; height: 18px; }
+      #download[aria-disabled="true"] { background: var(--border); color: var(--muted); box-shadow: none; cursor: not-allowed; pointer-events: none; }
+      .descarga { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
       .resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 16px; }
       .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
       .kpi { padding: 16px 20px; }
@@ -94,10 +96,15 @@
           <p class="eyebrow">Andes Lab · Tesorería</p>
           <h1>Facturas</h1>
         </div>
-        <a id="download" href="/api/export.csv">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
-          Descargar CSV
-        </a>
+        <div class="descarga">
+          <label>Tu nombre
+            <input id="by" type="text" maxlength="80" autocomplete="name" placeholder="Para registrar la descarga" />
+          </label>
+          <a id="download" aria-disabled="true" title="Escribe tu nombre para descargar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+            Descargar CSV
+          </a>
+        </div>
       </header>
 
       <p id="mensaje" role="alert"></p>
@@ -140,6 +147,7 @@
       const total = document.getElementById('total')
       const cantidad = document.getElementById('cantidad')
       const download = document.getElementById('download')
+      const by = document.getElementById('by')
       const mensaje = document.getElementById('mensaje')
 
       function celda(texto, clase) {
@@ -166,9 +174,22 @@
         return tr
       }
 
+      function actualizarDescarga() {
+        if (by.value.trim() === '') {
+          download.removeAttribute('href')
+          download.setAttribute('aria-disabled', 'true')
+          download.title = 'Escribe tu nombre para descargar'
+          return
+        }
+        download.href =
+          '/api/export.csv' + queryString({ status: status.value, month: month.value, by: by.value })
+        download.removeAttribute('aria-disabled')
+        download.removeAttribute('title')
+      }
+
       async function actualizar() {
         const query = queryString({ status: status.value, month: month.value })
-        download.href = '/api/export.csv' + query
+        actualizarDescarga()
         mensaje.textContent = ''
         try {
           const res = await fetch('/api/invoices' + query)
@@ -199,6 +220,16 @@
         }
       }
 
+      try {
+        by.value = localStorage.getItem('panel-facturas-nombre') ?? ''
+      } catch {}
+
+      by.addEventListener('input', () => {
+        try {
+          localStorage.setItem('panel-facturas-nombre', by.value.trim())
+        } catch {}
+        actualizarDescarga()
+      })
       status.addEventListener('change', actualizar)
       month.addEventListener('change', actualizar)
       actualizar()
