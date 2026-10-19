@@ -2,7 +2,7 @@ import http from 'node:http'
 import { pathToFileURL } from 'node:url'
 import { sendJson } from './http-send.js'
 import { listInvoices } from './invoices.js'
-import { handlePage } from './routes/page.js'
+import { handlePage, handlePanelJs } from './routes/page.js'
 
 function handleInvoices(req, res) {
   sendJson(res, 200, listInvoices())
@@ -10,6 +10,7 @@ function handleInvoices(req, res) {
 
 const routes = {
   '/': handlePage,
+  '/panel.js': handlePanelJs,
   '/api/invoices': handleInvoices,
 }
 

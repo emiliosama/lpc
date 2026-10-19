@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
 import { listInvoices } from '../src/invoices.js'
 import { createServer } from '../src/server.js'
+import { queryString, totalAmount } from '../src/web/panel.js'
 
 let server
 let base
@@ -23,6 +24,35 @@ test('C22: GET / sirve el HTML con la tabla de facturas', async () => {
   for (const column of ['id', 'cliente', 'fecha', 'monto', 'estado']) {
     assert.match(html, new RegExp(`<th>${column}</th>`))
   }
+  assert.match(html, /<select id="status"/)
+  for (const value of ['', 'paid', 'open', 'void']) {
+    assert.match(html, new RegExp(`<option value="${value}"`))
+  }
+  assert.match(html, /<input id="month" type="month"/)
+  assert.match(html, /id="total"/)
+  assert.match(html, /id="download"/)
+  assert.match(html, /Descargar CSV/)
+})
+
+test('C23: GET /panel.js sirve el módulo JS de la página', async () => {
+  const res = await fetch(`${base}/panel.js`)
+  assert.equal(res.status, 200)
+  assert.equal(res.headers.get('content-type'), 'text/javascript; charset=utf-8')
+  assert.match(await res.text(), /export function totalAmount/)
+})
+
+test('C24: totalAmount suma amount', () => {
+  const [f1001, f1002] = listInvoices()
+  assert.equal(totalAmount(listInvoices()), 4690000)
+  assert.equal(totalAmount([f1001, f1002]), 2140000)
+  assert.equal(totalAmount([]), 0)
+})
+
+test('C25: queryString arma la query solo con los filtros no vacíos', () => {
+  assert.equal(queryString({ status: '', month: '' }), '')
+  assert.equal(queryString({ status: 'open', month: '2026-08' }), '?status=open&month=2026-08')
+  assert.equal(queryString({ status: '', month: '2026-08' }), '?month=2026-08')
+  assert.equal(queryString({ status: 'void', month: '' }), '?status=void')
 })
 
 test('C15: GET /api/invoices devuelve las 4 facturas, anuladas incluidas', async () => {

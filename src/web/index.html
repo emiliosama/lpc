@@ -7,24 +7,52 @@
     <style>
       body { font-family: system-ui, sans-serif; margin: 2rem; color: #1f2933; }
       h1 { font-size: 1.4rem; }
+      .filtros { display: flex; gap: 1rem; align-items: end; margin-bottom: 1rem; flex-wrap: wrap; }
+      label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.9rem; }
+      select, input { font: inherit; padding: 0.25rem 0.4rem; }
       table { border-collapse: collapse; min-width: 32rem; }
       th, td { padding: 0.4rem 0.8rem; border-bottom: 1px solid #d9e2ec; text-align: left; }
       th { background: #f0f4f8; }
-      td.monto { text-align: right; font-variant-numeric: tabular-nums; }
+      td.monto, tfoot td { text-align: right; font-variant-numeric: tabular-nums; }
+      tfoot td { font-weight: 600; border-bottom: none; }
+      #download { display: inline-block; margin-top: 1rem; }
       #mensaje { color: #b42318; }
     </style>
   </head>
   <body>
     <h1>Facturas</h1>
+    <div class="filtros">
+      <label>Estado
+        <select id="status">
+          <option value="">Todas</option>
+          <option value="paid">Pagada</option>
+          <option value="open">Abierta</option>
+          <option value="void">Anulada</option>
+        </select>
+      </label>
+      <label>Mes
+        <input id="month" type="month" />
+      </label>
+    </div>
     <p id="mensaje"></p>
     <table>
       <thead>
         <tr><th>id</th><th>cliente</th><th>fecha</th><th>monto</th><th>estado</th></tr>
       </thead>
       <tbody id="filas"></tbody>
+      <tfoot>
+        <tr><td colspan="3">Total</td><td id="total"></td><td></td></tr>
+      </tfoot>
     </table>
+    <a id="download" href="/api/export.csv">Descargar CSV</a>
     <script type="module">
+      import { queryString, totalAmount } from '/panel.js'
+
+      const status = document.getElementById('status')
+      const month = document.getElementById('month')
       const filas = document.getElementById('filas')
+      const total = document.getElementById('total')
+      const download = document.getElementById('download')
       const mensaje = document.getElementById('mensaje')
 
       function celda(texto, clase) {
@@ -34,23 +62,38 @@
         return td
       }
 
-      try {
-        const res = await fetch('/api/invoices')
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        for (const factura of await res.json()) {
-          const tr = document.createElement('tr')
-          tr.append(
-            celda(factura.id),
-            celda(factura.client),
-            celda(factura.issuedAt),
-            celda(String(factura.amount), 'monto'),
-            celda(factura.status),
+      async function actualizar() {
+        const query = queryString({ status: status.value, month: month.value })
+        download.href = '/api/export.csv' + query
+        mensaje.textContent = ''
+        try {
+          const res = await fetch('/api/invoices' + query)
+          if (!res.ok) throw new Error(`HTTP ${res.status}`)
+          const facturas = await res.json()
+          filas.replaceChildren(
+            ...facturas.map((factura) => {
+              const tr = document.createElement('tr')
+              tr.append(
+                celda(factura.id),
+                celda(factura.client),
+                celda(factura.issuedAt),
+                celda(String(factura.amount), 'monto'),
+                celda(factura.status),
+              )
+              return tr
+            }),
           )
-          filas.append(tr)
+          total.textContent = String(totalAmount(facturas))
+        } catch (err) {
+          filas.replaceChildren()
+          total.textContent = ''
+          mensaje.textContent = `No se pudieron cargar las facturas: ${err.message}`
         }
-      } catch (err) {
-        mensaje.textContent = `No se pudieron cargar las facturas: ${err.message}`
       }
+
+      status.addEventListener('change', actualizar)
+      month.addEventListener('change', actualizar)
+      actualizar()
     </script>
   </body>
 </html>
