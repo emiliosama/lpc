@@ -5,46 +5,132 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Facturas · Andes Lab</title>
     <style>
-      body { font-family: system-ui, sans-serif; margin: 2rem; color: #1f2933; }
-      h1 { font-size: 1.4rem; }
-      .filtros { display: flex; gap: 1rem; align-items: end; margin-bottom: 1rem; flex-wrap: wrap; }
-      label { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.9rem; }
-      select, input { font: inherit; padding: 0.25rem 0.4rem; }
-      table { border-collapse: collapse; min-width: 32rem; }
-      th, td { padding: 0.4rem 0.8rem; border-bottom: 1px solid #d9e2ec; text-align: left; }
-      th { background: #f0f4f8; }
-      td.monto, tfoot td { text-align: right; font-variant-numeric: tabular-nums; }
-      tfoot td { font-weight: 600; border-bottom: none; }
-      #download { display: inline-block; margin-top: 1rem; }
-      #mensaje { color: #b42318; }
+      :root {
+        color-scheme: light dark;
+        --bg: #f4f6fb;
+        --surface: #ffffff;
+        --border: #e3e8f0;
+        --text: #172033;
+        --muted: #64708a;
+        --accent: #4f46e5;
+        --accent-hover: #4338ca;
+        --accent-soft: #eef0ff;
+        --row-hover: #f7f8fc;
+        --shadow: 0 1px 2px rgb(16 24 40 / 0.04), 0 8px 24px rgb(16 24 40 / 0.06);
+        --paid-bg: #e7f7ee; --paid-fg: #13794a;
+        --open-bg: #e8f0ff; --open-fg: #2453c9;
+        --void-bg: #f1f2f5; --void-fg: #6b7280;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0f1320;
+          --surface: #171c2b;
+          --border: #262d40;
+          --text: #e6e9f2;
+          --muted: #8b94ab;
+          --accent: #818cf8;
+          --accent-hover: #a5b4fc;
+          --accent-soft: #232a45;
+          --row-hover: #1d2335;
+          --shadow: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.25);
+          --paid-bg: #12301f; --paid-fg: #6ee7a8;
+          --open-bg: #172446; --open-fg: #93b4ff;
+          --void-bg: #242a38; --void-fg: #9aa3b5;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      }
+      main { max-width: 960px; margin: 0 auto; padding: 40px 16px 64px; }
+      header { display: flex; justify-content: space-between; align-items: end; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
+      .eyebrow { margin: 0 0 4px; color: var(--muted); font-size: 13px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; }
+      h1 { margin: 0; font-size: 28px; font-weight: 650; letter-spacing: -0.02em; }
+      #download {
+        display: inline-flex; align-items: center; gap: 8px;
+        padding: 10px 16px; border-radius: 10px;
+        background: var(--accent); color: #fff; text-decoration: none; font-weight: 600;
+        box-shadow: var(--shadow); transition: background 0.15s;
+      }
+      #download:hover { background: var(--accent-hover); }
+      #download svg { width: 18px; height: 18px; }
+      .resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 16px; }
+      .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow); }
+      .kpi { padding: 16px 20px; }
+      .kpi span { display: block; color: var(--muted); font-size: 13px; }
+      .kpi strong { display: block; margin-top: 4px; font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+      .filtros { display: flex; gap: 16px; flex-wrap: wrap; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+      label { display: flex; flex-direction: column; gap: 6px; color: var(--muted); font-size: 13px; font-weight: 500; }
+      select, input {
+        min-width: 180px; padding: 8px 12px; border-radius: 8px;
+        border: 1px solid var(--border); background: var(--bg); color: var(--text); font: inherit;
+      }
+      select:focus, input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+      .tabla { overflow-x: auto; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { padding: 12px 20px; text-align: left; white-space: nowrap; }
+      th { color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; border-bottom: 1px solid var(--border); }
+      tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+      tbody tr:last-child { border-bottom: none; }
+      tbody tr:hover { background: var(--row-hover); }
+      td:first-child { font-weight: 600; }
+      .monto, th:nth-child(4) { text-align: right; font-variant-numeric: tabular-nums; }
+      .estado { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; }
+      .estado-paid { background: var(--paid-bg); color: var(--paid-fg); }
+      .estado-open { background: var(--open-bg); color: var(--open-fg); }
+      .estado-void { background: var(--void-bg); color: var(--void-fg); }
+      .vacio { padding: 40px 20px; text-align: center; color: var(--muted); }
+      #mensaje:empty { display: none; }
+      #mensaje { margin: 0 0 16px; padding: 12px 16px; border-radius: 10px; background: #fdecec; color: #b42318; }
     </style>
   </head>
   <body>
-    <h1>Facturas</h1>
-    <div class="filtros">
-      <label>Estado
-        <select id="status">
-          <option value="">Todas</option>
-          <option value="paid">Pagada</option>
-          <option value="open">Abierta</option>
-          <option value="void">Anulada</option>
-        </select>
-      </label>
-      <label>Mes
-        <input id="month" type="month" />
-      </label>
-    </div>
-    <p id="mensaje"></p>
-    <table>
-      <thead>
-        <tr><th>id</th><th>cliente</th><th>fecha</th><th>monto</th><th>estado</th></tr>
-      </thead>
-      <tbody id="filas"></tbody>
-      <tfoot>
-        <tr><td colspan="3">Total</td><td id="total"></td><td></td></tr>
-      </tfoot>
-    </table>
-    <a id="download" href="/api/export.csv">Descargar CSV</a>
+    <main>
+      <header>
+        <div>
+          <p class="eyebrow">Andes Lab · Tesorería</p>
+          <h1>Facturas</h1>
+        </div>
+        <a id="download" href="/api/export.csv">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          Descargar CSV
+        </a>
+      </header>
+
+      <p id="mensaje" role="alert"></p>
+
+      <section class="resumen">
+        <div class="card kpi"><span>Facturas</span><strong id="cantidad">–</strong></div>
+        <div class="card kpi"><span>Total</span><strong id="total">–</strong></div>
+      </section>
+
+      <section class="card">
+        <div class="filtros">
+          <label>Estado
+            <select id="status">
+              <option value="">Todas</option>
+              <option value="paid">Pagada</option>
+              <option value="open">Abierta</option>
+              <option value="void">Anulada</option>
+            </select>
+          </label>
+          <label>Mes
+            <input id="month" type="month" />
+          </label>
+        </div>
+        <div class="tabla">
+          <table>
+            <thead>
+              <tr><th>id</th><th>cliente</th><th>fecha</th><th>monto</th><th>estado</th></tr>
+            </thead>
+            <tbody id="filas"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
     <script type="module">
       import { queryString, totalAmount } from '/panel.js'
 
@@ -52,6 +138,7 @@
       const month = document.getElementById('month')
       const filas = document.getElementById('filas')
       const total = document.getElementById('total')
+      const cantidad = document.getElementById('cantidad')
       const download = document.getElementById('download')
       const mensaje = document.getElementById('mensaje')
 
@@ -60,6 +147,23 @@
         td.textContent = texto
         if (clase) td.className = clase
         return td
+      }
+
+      function celdaEstado(estado) {
+        const td = document.createElement('td')
+        const badge = document.createElement('span')
+        badge.className = `estado estado-${estado}`
+        badge.textContent = estado
+        td.append(badge)
+        return td
+      }
+
+      function filaVacia() {
+        const tr = document.createElement('tr')
+        const td = celda('No hay facturas con estos filtros.', 'vacio')
+        td.colSpan = 5
+        tr.append(td)
+        return tr
       }
 
       async function actualizar() {
@@ -71,22 +175,26 @@
           if (!res.ok) throw new Error(`HTTP ${res.status}`)
           const facturas = await res.json()
           filas.replaceChildren(
-            ...facturas.map((factura) => {
-              const tr = document.createElement('tr')
-              tr.append(
-                celda(factura.id),
-                celda(factura.client),
-                celda(factura.issuedAt),
-                celda(String(factura.amount), 'monto'),
-                celda(factura.status),
-              )
-              return tr
-            }),
+            ...(facturas.length === 0
+              ? [filaVacia()]
+              : facturas.map((factura) => {
+                  const tr = document.createElement('tr')
+                  tr.append(
+                    celda(factura.id),
+                    celda(factura.client),
+                    celda(factura.issuedAt),
+                    celda(String(factura.amount), 'monto'),
+                    celdaEstado(factura.status),
+                  )
+                  return tr
+                })),
           )
           total.textContent = String(totalAmount(facturas))
+          cantidad.textContent = String(facturas.length)
         } catch (err) {
           filas.replaceChildren()
-          total.textContent = ''
+          total.textContent = '–'
+          cantidad.textContent = '–'
           mensaje.textContent = `No se pudieron cargar las facturas: ${err.message}`
         }
       }
