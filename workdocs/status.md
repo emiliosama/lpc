@@ -29,7 +29,6 @@ Anota el comando y el resultado. Primero rojo. Después verde, o un gap citado.
 | Story | Comando | Resultado | Gap (si sigue rojo) |
 |---|---|---|---|
 | T-01-story-1 | `npm test` (`test/invoices-csv.test.js`) | Rojo (2026-10-15): `ERR_MODULE_NOT_FOUND: Cannot find module 'src/invoices-csv.js'`. tests 5, pass 4, fail 1. Verde (2026-10-19): `src/invoices-csv.js` con `toCsv` y `escapeField`. tests 6, pass 6, fail 0 | |
-| T-01-story-2 | | | |
 | T-01-story-2 | `npm test` | Rojo (15-10): `✖ test\export-options.test.js` con `Error [ERR_MODULE_NOT_FOUND]: Cannot find module '...\src\export-options.js'`; `tests 5, pass 4, fail 1` (los 4 de `invoices.test.js` siguen verdes). Verde (15-10, tras crear `src/export-options.js`): `tests 22, pass 22, fail 0`, local con Node 26; falta confirmar en la CI (Ubuntu, Node 20). | |
 | T-01-story-3 | `npm test` (Node v20.20.2, Windows, `test/export-csv.cli.test.js`) | **Rojo (2026-10-15):** `# tests 20`, `# pass 4`, `# fail 16`. Fallan los 16 nuevos (C1–C7, C10 y uso general): la CLI responde `usage: node src/cli.js <list\|get> [id]` con código 1, sin `export-csv` en stderr y sin archivo. Los 4 de `test/invoices.test.js` siguen en verde (C9). **Verde contra contratos (2026-10-19):** con `src/export-options.js` de `origin/feat/T-01-story-2` y un `toCsv` provisional según el contrato de la Story 1, copiados sin commitear, `# tests 20`, `# pass 20`, `# fail 0`. **Verde con `main` integrado (2026-10-19, Stories 1 y 2 mergeadas):** `# tests 40`, `# pass 40`, `# fail 0`. | Falta confirmar en la CI (Ubuntu, Node 20). |
 
@@ -46,10 +45,17 @@ Una tarea acotada y su resumen. Si hubo implementación y falta esta línea, M4 
 
 ## Día 3
 
-**Mergeó:**
+**Mergeó (2026-10-19, en el orden del plan: 2, 1 y 3 al final):**
+
+- T-01-story-2, PR #6 (dzumelzu): `src/export-options.js` con `parseExportArgs`, `selectInvoices` y `UsageError` (C2–C6).
+- T-01-story-1, PR #8 (Gerardo): `src/invoices-csv.js` con `toCsv` y el escape de campos (C1 sin BOM y C8).
+- T-01-story-3, PR #7 (Emilio): comando `export-csv` en `src/cli.js`, con BOM, escritura del archivo y errores (C1–C7, C10). La CI (Ubuntu, Node 20) pasó en verde. En un checkout limpio de `main` tras el merge: `npm test` da `# tests 40`, `# pass 40`, `# fail 0`, y `export-csv --month 2026-08` escribe `EF BB BF` más las 3 líneas exactas de C1. C9 sigue en verde.
 
 **Quedó fuera (gap, no vendido como merge):**
 
+- Revisión manual en Excel: María (tesorería) todavía no abre el CSV de agosto (`node src/cli.js export-csv --month 2026-08`) para confirmar columnas y acentos, según los Supuestos de la spec. Es la única verificación que no se puede automatizar. El ticket T-01 no se cierra hasta que confirme.
+
 **PRs:**
 - T-01-story-1 (Gerardo): https://github.com/emiliosama/lpc/pull/8
+- T-01-story-2 (dzumelzu): https://github.com/emiliosama/lpc/pull/6
 - T-01-story-3 (Emilio): https://github.com/emiliosama/lpc/pull/7
