@@ -1,11 +1,20 @@
-import http from 'node:http'
+import { createServer as createHttpServer } from 'node:http'
 import { pathToFileURL } from 'node:url'
 import { sendJson } from './http-send.js'
+import { filterInvoices, parseInvoiceQuery, QueryError } from './invoice-query.js'
 import { listInvoices } from './invoices.js'
 import { handlePage, handlePanelJs } from './routes/page.js'
 
-function handleInvoices(req, res) {
-  sendJson(res, 200, listInvoices())
+function handleInvoices(req, res, url) {
+  let query
+  try {
+    query = parseInvoiceQuery(url.searchParams)
+  } catch (err) {
+    if (!(err instanceof QueryError)) throw err
+    sendJson(res, 400, { error: err.message })
+    return
+  }
+  sendJson(res, 200, filterInvoices(listInvoices(), query))
 }
 
 const routes = {
@@ -15,7 +24,7 @@ const routes = {
 }
 
 export function createServer() {
-  return http.createServer((req, res) => {
+  return createHttpServer((req, res) => {
     const url = new URL(req.url, 'http://localhost')
     const handler = req.method === 'GET' ? routes[url.pathname] : undefined
     if (!handler) {
