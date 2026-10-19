@@ -28,9 +28,10 @@ Anota el comando y el resultado. Primero rojo. Después verde, o un gap citado.
 
 | Story | Comando | Resultado | Gap (si sigue rojo) |
 |---|---|---|---|
-| T-01-story-1 | | | |
+| T-01-story-1 | `npm test` (`test/invoices-csv.test.js`) | Rojo (2026-10-15): `ERR_MODULE_NOT_FOUND: Cannot find module 'src/invoices-csv.js'`. tests 5, pass 4, fail 1. Verde (2026-10-19): `src/invoices-csv.js` con `toCsv` y `escapeField`. tests 6, pass 6, fail 0 | |
 | T-01-story-2 | | | |
-| T-01-story-3 | `npm test` (Node v20.20.2, Windows, `test/export-csv.cli.test.js`) | **Rojo (2026-10-15):** `# tests 20`, `# pass 4`, `# fail 16`. Fallan los 16 nuevos (C1–C7, C10 y uso general): la CLI responde `usage: node src/cli.js <list\|get> [id]` con código 1, sin `export-csv` en stderr y sin archivo. Los 4 de `test/invoices.test.js` siguen en verde (C9). **Verde contra contratos (2026-10-19):** con `src/export-options.js` de `origin/feat/T-01-story-2` y un `toCsv` provisional según el contrato de la Story 1, copiados sin commitear, `# tests 20`, `# pass 20`, `# fail 0`. **En la rama sola:** `# pass 4`, `# fail 16`, por `ERR_MODULE_NOT_FOUND` de `src/export-options.js`. | Gap: el verde real depende de que las Stories 1 y 2 estén en `main` (la 1 aún no tiene rama publicada). Mientras tanto `src/cli.js` no carga en esta rama, así que `list` y `get` por CLI también fallan aquí. El PR se mergea después de 1 y 2, rebasando sobre `main`, y ahí se vuelve a correr `npm test`. |
+| T-01-story-2 | `npm test` | Rojo (15-10): `✖ test\export-options.test.js` con `Error [ERR_MODULE_NOT_FOUND]: Cannot find module '...\src\export-options.js'`; `tests 5, pass 4, fail 1` (los 4 de `invoices.test.js` siguen verdes). Verde (15-10, tras crear `src/export-options.js`): `tests 22, pass 22, fail 0`, local con Node 26; falta confirmar en la CI (Ubuntu, Node 20). | |
+| T-01-story-3 | `npm test` (Node v20.20.2, Windows, `test/export-csv.cli.test.js`) | **Rojo (2026-10-15):** `# tests 20`, `# pass 4`, `# fail 16`. Fallan los 16 nuevos (C1–C7, C10 y uso general): la CLI responde `usage: node src/cli.js <list\|get> [id]` con código 1, sin `export-csv` en stderr y sin archivo. Los 4 de `test/invoices.test.js` siguen en verde (C9). **Verde contra contratos (2026-10-19):** con `src/export-options.js` de `origin/feat/T-01-story-2` y un `toCsv` provisional según el contrato de la Story 1, copiados sin commitear, `# tests 20`, `# pass 20`, `# fail 0`. **Verde con `main` integrado (2026-10-19, Stories 1 y 2 mergeadas):** `# tests 40`, `# pass 40`, `# fail 0`. | Falta confirmar en la CI (Ubuntu, Node 20). |
 
 ## Workers
 
@@ -38,7 +39,10 @@ Una tarea acotada y su resumen. Si hubo implementación y falta esta línea, M4 
 
 | Story | Tarea | Resumen |
 |---|---|---|
+| T-01-story-1 | Explore (solo lectura): revisar `test/invoices-csv.test.js` contra C1 (sin BOM) y C8 de la SPEC y la Story 1 del PLAN | Sin gaps: asserta los strings exactos con CRLF y sin BOM, y nada fuera de la spec. Señaló un BOM literal invisible en el `startsWith`, que se cambió por el escape `'﻿'`. |
+| T-01-story-2 | Explore (solo lectura): revisar `test/export-options.test.js` contra C2 a C6 de la spec y la Story 2 del plan. | Sin contradicciones con spec ni fixture. Faltaban `--include-void` repetido, `--out` repetido, `--out` seguido de `--...` y el estado `void` de F-1003 en C3; se agregaron. |
 | T-01-story-3 | Worker general-purpose (Sonnet), solo lectura: revisar `test/export-csv.cli.test.js` contra C1 a C7, C10 y el uso general de la spec, contra el `src/cli.js` actual y por portabilidad Ubuntu/Windows. | Cubre los criterios de la story con fidelidad. Todos los tests fallan contra la CLI actual; los casos C6 fallan porque exigen `export-csv` en stderr. Sin problemas de rutas ni de fin de línea. Nota para el código: escribir el BOM como `﻿`, no como carácter invisible. |
+| | | |
 
 ## Día 3
 
@@ -47,3 +51,5 @@ Una tarea acotada y su resumen. Si hubo implementación y falta esta línea, M4 
 **Quedó fuera (gap, no vendido como merge):**
 
 **PRs:**
+- T-01-story-1 (Gerardo): https://github.com/emiliosama/lpc/pull/8
+- T-01-story-3 (Emilio): https://github.com/emiliosama/lpc/pull/7
