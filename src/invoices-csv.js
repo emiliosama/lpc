@@ -1,5 +1,10 @@
 const header = ['id', 'cliente', 'fecha', 'monto', 'estado']
 
+function neutralizeFormula(value) {
+  const text = String(value)
+  return /^[=+\-@]/.test(text) ? `'${text}` : text
+}
+
 function escapeField(value) {
   const text = String(value)
   if (/[;"\r\n]/.test(text)) {
@@ -10,8 +15,8 @@ function escapeField(value) {
 
 export function toCsv(invoices) {
   const rows = invoices.map((invoice) => [
-    invoice.id,
-    invoice.client,
+    neutralizeFormula(invoice.id),
+    neutralizeFormula(invoice.client),
     invoice.issuedAt,
     String(invoice.amount),
     invoice.status,
