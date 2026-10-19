@@ -51,3 +51,4 @@ Una tarea acotada y su resumen. Si hubo implementación y falta esta línea, M4 
 **Quedó fuera (gap, no vendido como merge):**
 
 **PRs:**
+- T-01-story-1 (Gerardo): https://github.com/emiliosama/lpc/pull/8
