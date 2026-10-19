@@ -1,5 +1,10 @@
 const header = ['id', 'cliente', 'fecha', 'monto', 'estado']
 
+function neutralizeFormula(value) {
+  const text = String(value)
+  return /^[=+\-@]/.test(text) ? `'${text}` : text
+}
+
 function escapeField(value) {
   const text = String(value)
   if (/[;"\r\n]/.test(text)) {
