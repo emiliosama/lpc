@@ -3,6 +3,7 @@ import { pathToFileURL } from 'node:url'
 import { sendJson } from './http-send.js'
 import { filterInvoices, parseInvoiceQuery, QueryError } from './invoice-query.js'
 import { listInvoices } from './invoices.js'
+import { handleExportCsv } from './routes/export-csv.js'
 
 function handleInvoices(req, res, url) {
   let query
@@ -18,6 +19,7 @@ function handleInvoices(req, res, url) {
 
 const routes = {
   '/api/invoices': handleInvoices,
+  '/api/export.csv': handleExportCsv,
 }
 
 export function createServer() {
