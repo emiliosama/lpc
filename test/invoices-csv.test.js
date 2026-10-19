@@ -23,3 +23,16 @@ test('toCsv quotes fields with ; or " and doubles inner quotes (C8)', () => {
     'id;cliente;fecha;monto;estado\r\nF-9;"Comercial ""El Sol""; Ltda";2026-08-01;1000;open\r\n',
   )
 })
+
+test('toCsv neutralizes formulas in id and cliente, not in monto (C11)', () => {
+  const csv = toCsv([
+    { id: 'F-9', client: '=HYPERLINK("http://x")', issuedAt: '2026-08-01', amount: 1000, status: 'open' },
+    { id: '+F-8', client: '@Sur', issuedAt: '2026-08-01', amount: -500, status: 'open' },
+  ])
+  assert.equal(
+    csv,
+    'id;cliente;fecha;monto;estado\r\n' +
+      'F-9;"\'=HYPERLINK(""http://x"")";2026-08-01;1000;open\r\n' +
+      "'+F-8;'@Sur;2026-08-01;-500;open\r\n",
+  )
+})

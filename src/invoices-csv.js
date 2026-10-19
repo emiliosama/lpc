@@ -8,10 +8,14 @@ function escapeField(value) {
   return text
 }
 
+function neutralizeFormula(text) {
+  return /^[=+\-@]/.test(text) ? `'${text}` : text
+}
+
 export function toCsv(invoices) {
   const rows = invoices.map((invoice) => [
-    invoice.id,
-    invoice.client,
+    neutralizeFormula(String(invoice.id)),
+    neutralizeFormula(String(invoice.client)),
     invoice.issuedAt,
     String(invoice.amount),
     invoice.status,
