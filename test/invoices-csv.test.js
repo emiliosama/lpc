@@ -23,3 +23,25 @@ test('toCsv quotes fields with ; or " and doubles inner quotes (C8)', () => {
     'id;cliente;fecha;monto;estado\r\nF-9;"Comercial ""El Sol""; Ltda";2026-08-01;1000;open\r\n',
   )
 })
+
+test('toCsv returns only the header for an empty list (C5)', () => {
+  assert.equal(toCsv([]), 'id;cliente;fecha;monto;estado\r\n')
+})
+
+test('toCsv quotes fields with a line break', () => {
+  const csv = toCsv([
+    { id: 'F-9', client: 'Linea1\nLinea2', issuedAt: '2026-08-01', amount: 1000, status: 'open' },
+    { id: 'F-10', client: 'A\rB', issuedAt: '2026-08-01', amount: 1000, status: 'open' },
+  ])
+  assert.equal(
+    csv,
+    'id;cliente;fecha;monto;estado\r\n' +
+      'F-9;"Linea1\nLinea2";2026-08-01;1000;open\r\n' +
+      'F-10;"A\rB";2026-08-01;1000;open\r\n',
+  )
+})
+
+test('toCsv doubles quotes in a field made only of quotes', () => {
+  const csv = toCsv([{ id: 'F-9', client: '""', issuedAt: '2026-08-01', amount: 1000, status: 'open' }])
+  assert.equal(csv, 'id;cliente;fecha;monto;estado\r\nF-9;"""""";2026-08-01;1000;open\r\n')
+})
