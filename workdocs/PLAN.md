@@ -6,7 +6,7 @@ El diseño técnico de cada story va aquí. No hay `DESIGN.md`.
 
 Cada story tiene una persona, un worktree, una rama `feat/<ticket-id>-story-<n>` y un PR.
 
-Spec: [`workdocs/SPEC.md`](./SPEC.md). Ticket: [`tickets/T-01.md`](../tickets/T-01.md). Los números de criterio (C1 a C10) son los de "Aceptación observable" de la spec.
+Spec: [`workdocs/SPEC.md`](./SPEC.md). Ticket: [`tickets/T-01.md`](../tickets/T-01.md). Los números de criterio (C1 a C11) son los de "Aceptación observable" de la spec.
 
 ## Contratos entre stories
 
@@ -14,8 +14,8 @@ Los fija este plan para que las tres stories avancen en paralelo. Nadie los camb
 
 | Módulo | Export | Firma y comportamiento | Dueña |
 |---|---|---|---|
-| `src/invoices-csv.js` | `toCsv(invoices)` | Recibe un arreglo de facturas con la forma de `invoices.json`. Devuelve `string`: encabezado `id;cliente;fecha;monto;estado` y una fila por factura, cada línea terminada en `\r\n`, sin BOM. No filtra. Fijado por la spec. | Story 1 |
-| `src/export-options.js` | `parseExportArgs(args)` | Recibe los argumentos después de `export-csv` (`string[]`). Devuelve `{ month: string \| null, includeVoid: boolean, out: string }`, con `out` en `'facturas.csv'` si no viene. Ante cualquier error de C6 lanza `UsageError`. No toca el disco. | Story 2 |
+| `src/invoices-csv.js` | `toCsv(invoices)` | Recibe un arreglo de facturas con la forma de `invoices.json`. Devuelve `string`: encabezado `id;cliente;fecha;monto;estado` y una fila por factura, cada línea terminada en `\r\n`, sin BOM. No filtra. Si `id` o `client` empiezan con `=`, `+`, `-` o `@`, les antepone `'` antes de aplicar las comillas (C11, Story 4). Fijado por la spec. | Story 1 (C11: Story 4) |
+| `src/export-options.js` | `parseExportArgs(args)` | Recibe los argumentos después de `export-csv` (`string[]`). Devuelve `{ month: string \| null, includeVoid: boolean, out: string }`, con `out` en `'facturas.csv'` si no viene. Ante cualquier error de C6 lanza `UsageError`, incluido un `--out` vacío o solo con espacios (Story 4). No toca el disco. | Story 2 (`--out` vacío: Story 4) |
 | `src/export-options.js` | `class UsageError extends Error` | Su `message` es el texto de uso y contiene `export-csv`. | Story 2 |
 | `src/export-options.js` | `selectInvoices(invoices, { month, includeVoid })` | Devuelve un arreglo nuevo, en el mismo orden. Sin `includeVoid` saca `status === 'void'`. Con `month` deja solo las facturas cuyo `issuedAt` empieza con `month`. | Story 2 |
 | `src/cli.js` | `export-csv` | Une todo: parsea, filtra, escribe `'﻿' + toCsv(...)` en `out` e imprime `Facturas exportadas: <N> -> <out>`. | Story 3 |
@@ -88,12 +88,31 @@ Mientras las Stories 1 y 2 no estén en `main`, codea contra los contratos de ar
 
 Comando: `npm test`. Rojo esperado: código 1 con `usage: node src/cli.js <list|get> [id]` y sin archivo.
 
+### Story 4: `feat/T-01-story-4`
+
+**Persona:** Emilio
+
+**Qué entra:** los casos de borde que agregó el grill posterior al merge (PR #10): fórmulas en Excel (C11) y `--out` vacío o con espacios (C6). `--month=2026-08` ya se rechaza en `main` y solo suma un test.
+
+**Diseño técnico (qué toca, contratos, orden):**
+
+1. En `src/invoices-csv.js`, agrega una función interna `neutralizeFormula(text)`: si `text` empieza con `=`, `+`, `-` o `@` (`/^[=+\-@]/`), devuelve `"'" + text`. Si no, devuelve `text` sin cambios. `toCsv` la aplica solo a `id` y `client`, antes de `escapeField`. `issuedAt`, `amount` y `status` no pasan por ella, para que un monto negativo siga siendo número.
+2. En `src/export-options.js`, `parseExportArgs` lanza `UsageError` si el valor de `--out` es `''` o solo espacios (`value.trim() === ''`). `--month` ya lo cubre su regex.
+3. No toca `src/cli.js`, `selectInvoices`, `src/invoices.js` ni el fixture.
+
+**Test de aceptación (falla antes de codear):**
+- `test/invoices-csv.test.js`: C11 con el string exacto de la spec.
+- `test/export-csv.cli.test.js`: casos nuevos de C6 a nivel de proceso. `--month=2026-08` con `--out <tmp>/f.csv`, y `--out ""` y `--out " "` ejecutados en `<tmp>`. Los tres terminan con código 1, `export-csv` en stderr y sin crear `<tmp>/f.csv` ni `<tmp>/facturas.csv`.
+
+Comando: `npm test`. Rojo esperado: falla C11 (sin `'`). `--out ""` falla porque stderr no trae `export-csv` (trae `no se pudo escribir : ENOENT`) y `--out " "` sale con 0. `--month=2026-08` pasa desde el inicio.
+
 ## Orden
 
 1. Este `PLAN.md` va a `main` antes de crear los worktrees.
 2. Las Stories 1 y 2 son independientes: archivos distintos y sin imports entre sí. Se hacen en paralelo y se mergean en cualquier orden.
 3. La Story 3 escribe su test rojo desde el día 1 y codea contra los contratos, pero se mergea al final, después de 1 y 2, rebasando sobre `main`. Su test de punta a punta es el que cierra la spec en la CI (Ubuntu, Node 20).
-4. Al cerrar, María abre a mano el CSV de agosto (`--month 2026-08`) en Excel, según los Supuestos de la spec.
+4. La Story 4 parte de `main` después del merge de las Stories 1 a 3 y del PR #10 (spec de los casos de borde). Es la única abierta y no depende de nada pendiente.
+5. Al cerrar, María abre a mano el CSV de agosto (`--month 2026-08`) en Excel, según los Supuestos de la spec.
 
 Worktrees (`<equipo>` = `lpc`):
 
