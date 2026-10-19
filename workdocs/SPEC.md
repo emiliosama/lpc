@@ -25,6 +25,7 @@ node src/cli.js export-csv [--month AAAA-MM] [--include-void] [--out <ruta>]
   - Separador `;`, porque Excel en español usa la coma como separador decimal.
   - Fin de línea `\r\n`.
   - Un campo que contenga `;`, `"` o un salto de línea va entre comillas dobles, y sus `"` internas se duplican.
+  - **Fórmulas:** si `id` o `cliente` empiezan con `=`, `+`, `-` o `@`, se les antepone un apóstrofo (`'`) para que Excel los muestre como texto y no los ejecute como fórmula. Primero se antepone el apóstrofo y después se aplica la regla de comillas. `fecha`, `monto` y `estado` no se modifican.
 - **Campos:**
   - `fecha`: `issuedAt` tal cual, `AAAA-MM-DD`.
   - `monto`: entero sin separadores de miles ni símbolo. `1250000`, no `$1.250.000`.
@@ -33,10 +34,11 @@ node src/cli.js export-csv [--month AAAA-MM] [--include-void] [--out <ruta>]
 - **Filtro por mes (opcional):** `--month 2026-08` deja solo las facturas cuyo `issuedAt` empieza con `2026-08`. Sin `--month` se exportan todos los meses.
 - **Archivo:** por defecto `facturas.csv` en el directorio actual. `--out <ruta>` lo cambia (por ejemplo `--out export-tesoreria-agosto.csv`). Si el archivo existe, se sobrescribe.
 - **Salida en consola:** al terminar, una sola línea en stdout: `Facturas exportadas: <N> -> <ruta>`, donde `<ruta>` es el valor de `--out` tal como se escribió, o `facturas.csv` si no se pasó. Por ejemplo `Facturas exportadas: 2 -> facturas.csv`. Código de salida 0.
-- **Errores:** un `--month` que no sea `AAAA-MM` con mes `01` a `12`, un `--month` o `--out` sin valor, una opción repetida o una opción desconocida, termina con código 1, un mensaje de uso en stderr que contiene `export-csv` y sin escribir archivo.
+- **Forma de las opciones:** el valor va separado por espacio (`--month 2026-08`). La forma `--month=2026-08` no se acepta y cuenta como opción desconocida.
+- **Errores:** un `--month` que no sea `AAAA-MM` con mes `01` a `12`, un `--month` o `--out` sin valor (un `--out` vacío o solo con espacios cuenta como sin valor), una opción repetida o una opción desconocida, termina con código 1, un mensaje de uso en stderr que contiene `export-csv` y sin escribir archivo.
 - **Si no se puede escribir el archivo** (por ejemplo, está abierto en Excel o la carpeta no existe): código 1, un mensaje en stderr que nombra la ruta tal como se escribió en `--out` (o `facturas.csv`) y sin stack trace.
 - El mensaje de uso general de la CLI incluye `export-csv`.
-- **Contrato del formato:** `src/invoices-csv.js` exporta `toCsv(invoices)`, que recibe un arreglo de facturas con la forma de `invoices.json` y devuelve el texto CSV (encabezado y filas, con `\r\n`) sin BOM. No filtra: el filtro por mes y por anuladas lo hace el comando antes de llamarla. Es el único contrato que fija la spec, porque el criterio 8 lo necesita; el resto del diseño va en `PLAN.md`.
+- **Contrato del formato:** `src/invoices-csv.js` exporta `toCsv(invoices)`, que recibe un arreglo de facturas con la forma de `invoices.json` y devuelve el texto CSV (encabezado y filas, con `\r\n`) sin BOM. No filtra: el filtro por mes y por anuladas lo hace el comando antes de llamarla. Es el único contrato que fija la spec, porque los criterios 8 y 11 lo necesitan; el resto del diseño va en `PLAN.md`.
 
 ## Aceptación observable
 
@@ -53,11 +55,12 @@ Con el fixture actual (`F-1001` y `F-1002` de agosto 2026; `F-1003` anulada y `F
 3. `export-csv --include-void --out <tmp>/c.csv` trae las 4 facturas, con `F-1003` y estado `void`.
 4. `export-csv --month 2026-09 --out <tmp>/d.csv` trae solo `F-1004`. Con `--include-void` agrega `F-1003`.
 5. `export-csv --month 2026-12 --out <tmp>/e.csv` escribe solo el encabezado, stdout es `Facturas exportadas: 0 -> <tmp>/e.csv` y el código de salida es 0.
-6. `export-csv --month 2026-13`, `--month agosto`, `--month 2026-8`, `--month` sin valor, `--month 2026-08 --month 2026-09` y `--formato x`, cada uno con `--out <tmp>/f.csv`, y `export-csv --out` sin valor ejecutado en `<tmp>`, terminan con código 1, escriben en stderr un texto que contiene `export-csv` y no crean `<tmp>/f.csv` ni `<tmp>/facturas.csv`.
+6. `export-csv --month 2026-13`, `--month agosto`, `--month 2026-8`, `--month` sin valor, `--month 2026-08 --month 2026-09`, `--formato x` y `--month=2026-08`, cada uno con `--out <tmp>/f.csv`, y `export-csv --out` sin valor, `export-csv --out ""` y `export-csv --out " "` ejecutados en `<tmp>`, terminan con código 1, escriben en stderr un texto que contiene `export-csv` y no crean `<tmp>/f.csv` ni `<tmp>/facturas.csv`.
 7. Ejecutado en un directorio temporal sin `--out`, crea `facturas.csv` en ese directorio y stdout es `Facturas exportadas: 3 -> facturas.csv`. Si `facturas.csv` ya existía con otro contenido, queda reemplazado.
 8. `toCsv([{ id: 'F-9', client: 'Comercial "El Sol"; Ltda', issuedAt: '2026-08-01', amount: 1000, status: 'open' }])` devuelve exactamente `id;cliente;fecha;monto;estado\r\nF-9;"Comercial ""El Sol""; Ltda";2026-08-01;1000;open\r\n`. El fixture no se toca.
 9. `list` y `get` se comportan igual que hoy: los tests actuales siguen en verde, incluido que el listado trae las anuladas.
 10. `export-csv --out <tmp>/no-existe/g.csv` termina con código 1, stderr contiene `<tmp>/no-existe/g.csv` y no contiene `    at ` (sin stack trace).
+11. `toCsv([{ id: 'F-9', client: '=HYPERLINK("http://x")', issuedAt: '2026-08-01', amount: 1000, status: 'open' }, { id: '+F-8', client: '@Sur', issuedAt: '2026-08-01', amount: -500, status: 'open' }])` devuelve exactamente `id;cliente;fecha;monto;estado\r\nF-9;"'=HYPERLINK(""http://x"")";2026-08-01;1000;open\r\n'+F-8;'@Sur;2026-08-01;-500;open\r\n`. El `monto` negativo no lleva apóstrofo.
 
 ## Fuera de alcance
 
@@ -69,7 +72,10 @@ Con el fixture actual (`F-1001` y `F-1002` de agosto 2026; `F-1003` anulada y `F
 - Endpoint HTTP, login, interfaz web o despliegue.
 - Cambiar `list`, `get`, `listInvoices()` o los datos de `src/data/invoices.json`.
 - Agregar dependencias npm.
+- Validar o normalizar `src/data/invoices.json`. Con datos fuera de la forma de los Supuestos (falta `issuedAt`, JSON inválido, `amount` decimal o `status` con otra capitalización), el comportamiento no está definido y puede terminar con stack trace. Un `"VOID"` en mayúsculas no cuenta como anulada.
+- Neutralizar fórmulas en otros caracteres iniciales (tabulador, retorno de carro) o en campos que no sean `id` y `cliente`.
 
 ## Supuestos
 
 - Los Excel de tesorería usan configuración regional en español, así que separan por `;` al abrir con doble clic. Un Excel en inglés vería una sola columna. Como "abre bien en Excel" no se puede automatizar, antes de cerrar el ticket María abre a mano el CSV de agosto (`--month 2026-08`) y confirma columnas y acentos.
+- `src/data/invoices.json` es JSON válido y cada factura trae `id` y `client` como texto, `issuedAt` como `AAAA-MM-DD`, `amount` como entero en pesos (puede ser negativo) y `status` en minúsculas (`paid`, `open` o `void`).
