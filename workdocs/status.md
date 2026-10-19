@@ -28,7 +28,7 @@ Anota el comando y el resultado. Primero rojo. Después verde, o un gap citado.
 
 | Story | Comando | Resultado | Gap (si sigue rojo) |
 |---|---|---|---|
-| T-01-story-1 | `npm test` (`test/invoices-csv.test.js`) | Rojo (2026-10-15): `ERR_MODULE_NOT_FOUND: Cannot find module 'src/invoices-csv.js'`. tests 5, pass 4, fail 1 | |
+| T-01-story-1 | `npm test` (`test/invoices-csv.test.js`) | Rojo (2026-10-15): `ERR_MODULE_NOT_FOUND: Cannot find module 'src/invoices-csv.js'`. tests 5, pass 4, fail 1. Verde (2026-10-19): `src/invoices-csv.js` con `toCsv` y `escapeField`. tests 6, pass 6, fail 0 | |
 | T-01-story-2 | | | |
 | T-01-story-3 | | | |
 
