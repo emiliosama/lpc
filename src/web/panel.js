@@ -1,3 +1,9 @@
+const statusLabels = { paid: 'Pagada', open: 'Abierta', void: 'Anulada' }
+
+export function statusLabel(status) {
+  return Object.hasOwn(statusLabels, status) ? statusLabels[status] : status
+}
+
 export function totalAmount(invoices) {
   return invoices.reduce((sum, invoice) => sum + invoice.amount, 0)
 }

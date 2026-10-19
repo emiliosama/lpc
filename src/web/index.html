@@ -171,7 +171,7 @@
       </section>
     </main>
     <script type="module">
-      import { queryString, totalAmount } from '/panel.js'
+      import { queryString, statusLabel, totalAmount } from '/panel.js'
 
       const status = document.getElementById('status')
       const month = document.getElementById('month')
@@ -193,7 +193,7 @@
         const td = document.createElement('td')
         const badge = document.createElement('span')
         badge.className = `estado estado-${estado}`
-        badge.textContent = estado
+        badge.textContent = statusLabel(estado)
         td.append(badge)
         return td
       }

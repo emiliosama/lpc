@@ -58,9 +58,9 @@ Al cerrar, `node src/server.js` levanta un servidor HTTP local en el puerto 3000
 - **`GET /api/invoices?status=&month=`:** `200`, `Content-Type: application/json; charset=utf-8`, y el cuerpo es el arreglo de facturas filtradas, con los mismos objetos de `invoices.json`.
 - **`GET /api/export.csv?status=&month=`:** `200`, `Content-Type: text/csv; charset=utf-8`, `Content-Disposition: attachment; filename="facturas.csv"`. El cuerpo es BOM UTF-8 más `toCsv(filtradas)`: los mismos bytes que escribe `export-csv` para las mismas facturas, con todas las reglas de formato de T-01.
 - **`GET /`:** `200`, `Content-Type: text/html; charset=utf-8`. Un solo HTML con:
-  - un `<select id="status">` con las opciones `""` (Todas), `paid` (Pagada), `open` (Abierta) y `void` (Anulada). Solo las etiquetas del filtro van en español;
+  - un `<select id="status">` con las opciones `""` (Todas), `paid` (Pagada), `open` (Abierta) y `void` (Anulada);
   - un `<input id="month" type="month">`;
-  - una `<table>` con las columnas id, cliente, fecha, monto y estado, con los valores tal como en el CSV (`monto` como número sin separadores y `estado` como `paid`, `open` o `void`);
+  - una `<table>` con las columnas id, cliente, fecha, monto y estado, con `monto` como en el CSV (número sin separadores) y `estado` en español con las mismas etiquetas del filtro: `Pagada`, `Abierta` y `Anulada` (cambio del 2026-10-19). Un estado fuera de esos tres se muestra tal cual;
   - un elemento `id="total"` con la suma de `amount` de las filas que se ven en la tabla, anuladas incluidas si se ven;
   - un enlace `id="download"` con el texto `Descargar CSV`, que apunta a `/api/export.csv` con los filtros que están elegidos.
   Al cambiar un filtro, la tabla, el total y el enlace se actualizan sin recargar la página.
@@ -124,12 +124,13 @@ Con el mismo fixture. Cada test levanta `createServer()` en un puerto libre y co
 29. Sin `by` y sin filtros, la línea empieza con `Descarga CSV: (sin nombre) · sin filtros · `. `?status=anulada&by=Ana` responde `400` y `log` no recibe nada. `GET /api/invoices?by=Ana` no escribe línea.
 30. `downloadLogLine({ by: '  Ana\n\u001b[31mX  ', status: 'open', month: '2026-08' }, new Date('2026-10-19T12:00:00Z'))` es exactamente `Descarga CSV: Ana[31mX · status=open month=2026-08 · 2026-10-19T12:00:00.000Z`. Un `by` de 100 letras `a` sale con 80.
 31. `queryString({ status: 'open', month: '', by: ' Ana ' })` es `'?status=open&by=Ana'`, y `queryString({ status: '', month: '', by: '   ' })` es `''`. El HTML de `GET /` contiene `id="by"` y el texto `Tu nombre`.
+32. `statusLabel('paid')` es `'Pagada'`, `statusLabel('open')` es `'Abierta'`, `statusLabel('void')` es `'Anulada'` y `statusLabel('VOID')` es `'VOID'`. `src/web/panel.js` la exporta. El CSV sigue con `paid`, `open` y `void` (C1 y C20 no cambian).
 
 ## Fuera de alcance
 
 - Formato específico del banco (columnas, orden o separador distintos) y el envío al banco.
 - Archivos `.xlsx` u otros formatos que no sean CSV.
-- Traducir los estados al español (`pagada`, `abierta`, `anulada`) en el CSV o en la tabla. En el panel solo van en español las etiquetas del filtro de estado.
+- Traducir los estados al español en el CSV o en la API: siguen como `paid`, `open` y `void`. En el panel, el filtro y la tabla sí van en español.
 - En la CLI, filtros fuera de `--month` y `--include-void`. En el panel, filtros fuera de estado y mes: búsqueda por cliente, rango de fechas, varios estados a la vez.
 - Elegir el mes con palabras (`--month agosto`) o nombrar el archivo automáticamente según el mes. La descarga del panel siempre se llama `facturas.csv`.
 - Login, base de datos, despliegue y frameworks de front.

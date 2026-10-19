@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
 import { listInvoices } from '../src/invoices.js'
 import { createServer } from '../src/server.js'
-import { queryString, totalAmount } from '../src/web/panel.js'
+import { queryString, statusLabel, totalAmount } from '../src/web/panel.js'
 
 let server
 let base
@@ -66,4 +66,11 @@ test('C26: una ruta desconocida responde 404', async () => {
   const res = await fetch(`${base}/no-existe`)
   assert.equal(res.status, 404)
   await res.arrayBuffer()
+})
+
+test('C32: statusLabel muestra los estados en español, como el filtro', () => {
+  assert.equal(statusLabel('paid'), 'Pagada')
+  assert.equal(statusLabel('open'), 'Abierta')
+  assert.equal(statusLabel('void'), 'Anulada')
+  assert.equal(statusLabel('VOID'), 'VOID')
 })
