@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
 import { listInvoices } from '../src/invoices.js'
 import { createServer } from '../src/server.js'
-import { queryString, statusLabel, totalAmount } from '../src/web/panel.js'
+import { formatDate, queryString, statusLabel, totalAmount } from '../src/web/panel.js'
 
 let server
 let base
@@ -73,4 +73,10 @@ test('C32: statusLabel muestra los estados en español, como el filtro', () => {
   assert.equal(statusLabel('open'), 'Abierta')
   assert.equal(statusLabel('void'), 'Anulada')
   assert.equal(statusLabel('VOID'), 'VOID')
+})
+
+test('C33: formatDate muestra la fecha como DD-MM-AAAA', () => {
+  assert.equal(formatDate('2026-08-02'), '02-08-2026')
+  assert.equal(formatDate('2026-8-2'), '2026-8-2')
+  assert.equal(formatDate(''), '')
 })

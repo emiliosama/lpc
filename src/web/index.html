@@ -171,7 +171,7 @@
       </section>
     </main>
     <script type="module">
-      import { queryString, statusLabel, totalAmount } from '/panel.js'
+      import { formatDate, queryString, statusLabel, totalAmount } from '/panel.js'
 
       const status = document.getElementById('status')
       const month = document.getElementById('month')
@@ -235,7 +235,7 @@
                   tr.append(
                     celda(factura.id),
                     celda(factura.client),
-                    celda(factura.issuedAt),
+                    celda(formatDate(factura.issuedAt)),
                     celda(String(factura.amount), 'monto'),
                     celdaEstado(factura.status),
                   )

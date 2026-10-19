@@ -60,7 +60,7 @@ Al cerrar, `node src/server.js` levanta un servidor HTTP local en el puerto 3000
 - **`GET /`:** `200`, `Content-Type: text/html; charset=utf-8`. Un solo HTML con:
   - un `<select id="status">` con las opciones `""` (Todas), `paid` (Pagada), `open` (Abierta) y `void` (Anulada);
   - un `<input id="month" type="month">`;
-  - una `<table>` con las columnas id, cliente, fecha, monto y estado, con `monto` como en el CSV (número sin separadores) y `estado` en español con las mismas etiquetas del filtro: `Pagada`, `Abierta` y `Anulada` (cambio del 2026-10-19). Un estado fuera de esos tres se muestra tal cual;
+  - una `<table>` con las columnas id, cliente, fecha, monto y estado, con `monto` como en el CSV (número sin separadores), `fecha` como `DD-MM-AAAA` (`2026-08-02` se ve `02-08-2026`; cambio del 2026-10-19) y `estado` en español con las mismas etiquetas del filtro: `Pagada`, `Abierta` y `Anulada` (cambio del 2026-10-19). Un estado fuera de esos tres se muestra tal cual;
   - un elemento `id="total"` con la suma de `amount` de las filas que se ven en la tabla, anuladas incluidas si se ven;
   - un enlace `id="download"` con el texto `Descargar CSV`, que apunta a `/api/export.csv` con los filtros que están elegidos.
   Al cambiar un filtro, la tabla, el total y el enlace se actualizan sin recargar la página.
@@ -125,12 +125,13 @@ Con el mismo fixture. Cada test levanta `createServer()` en un puerto libre y co
 30. `downloadLogLine({ by: '  Ana\n\u001b[31mX  ', status: 'open', month: '2026-08' }, new Date('2026-10-19T12:00:00Z'))` es exactamente `Descarga CSV: Ana[31mX · status=open month=2026-08 · 2026-10-19T12:00:00.000Z`. Un `by` de 100 letras `a` sale con 80.
 31. `queryString({ status: 'open', month: '', by: ' Ana ' })` es `'?status=open&by=Ana'`, y `queryString({ status: '', month: '', by: '   ' })` es `''`. El HTML de `GET /` contiene `id="by"` y el texto `Tu nombre`.
 32. `statusLabel('paid')` es `'Pagada'`, `statusLabel('open')` es `'Abierta'`, `statusLabel('void')` es `'Anulada'` y `statusLabel('VOID')` es `'VOID'`. `src/web/panel.js` la exporta. El CSV sigue con `paid`, `open` y `void` (C1 y C20 no cambian).
+33. `formatDate('2026-08-02')` es `'02-08-2026'`. Un valor que no es `AAAA-MM-DD` (por ejemplo `'2026-8-2'` o `''`) sale tal cual. `src/web/panel.js` la exporta. El CSV y la API siguen con `AAAA-MM-DD` (C1 y C20 no cambian).
 
 ## Fuera de alcance
 
 - Formato específico del banco (columnas, orden o separador distintos) y el envío al banco.
 - Archivos `.xlsx` u otros formatos que no sean CSV.
-- Traducir los estados al español en el CSV o en la API: siguen como `paid`, `open` y `void`. En el panel, el filtro y la tabla sí van en español.
+- Traducir los estados al español o cambiar el formato de fecha en el CSV o en la API: siguen como `paid`, `open` y `void`, y `AAAA-MM-DD`. En la tabla del panel, el estado va en español y la fecha como `DD-MM-AAAA`.
 - En la CLI, filtros fuera de `--month` y `--include-void`. En el panel, filtros fuera de estado y mes: búsqueda por cliente, rango de fechas, varios estados a la vez.
 - Elegir el mes con palabras (`--month agosto`) o nombrar el archivo automáticamente según el mes. La descarga del panel siempre se llama `facturas.csv`.
 - Login, base de datos, despliegue y frameworks de front.
