@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
@@ -113,6 +113,16 @@ test('C6: --out sin valor termina con 1, uso en stderr y sin archivo', () => {
   assert.match(result.stderr, /export-csv/)
   assert.equal(existsSync(join(dir, 'facturas.csv')), false)
 })
+
+for (const blank of ['', '   ']) {
+  test(`C6: --out ${JSON.stringify(blank)} termina con 1, uso en stderr y sin archivo`, () => {
+    const dir = tmp()
+    const result = exportCsv(['--out', blank], dir)
+    assert.equal(result.status, 1)
+    assert.match(result.stderr, /export-csv/)
+    assert.deepEqual(readdirSync(dir), [])
+  })
+}
 
 test('C7: sin --out crea facturas.csv en el directorio actual', () => {
   const dir = tmp()

@@ -52,12 +52,13 @@ Sin dependencias npm nuevas: solo `node:fs`, `node:path`, `node:os`, `node:child
    - una opción desconocida;
    - una opción repetida (también `--include-void` dos veces);
    - un `--month` o `--out` sin valor, incluido el caso en que lo que sigue empieza con `--`;
+   - un `--out` cuyo valor queda vacío después de `trim()` (`""` o solo espacios);
    - un `--month` que no cumple `/^\d{4}-(0[1-9]|1[0-2])$/`.
 3. Escribe `selectInvoices(invoices, { month, includeVoid })` según el contrato.
 4. No toca `src/cli.js`.
 
 **Test de aceptación (falla antes de codear):** `test/export-options.test.js`.
-- `parseExportArgs`: cada caso de error de C6 (`2026-13`, `agosto`, `2026-8`, `--month` sin valor, `--month` repetido, `--formato x` y `--out` sin valor) lanza `UsageError` con `export-csv` en el mensaje. `[]` devuelve `{ month: null, includeVoid: false, out: 'facturas.csv' }`.
+- `parseExportArgs`: cada caso de error de C6 (`2026-13`, `agosto`, `2026-8`, `--month` sin valor, `--month` repetido, `--formato x`, `--out` sin valor, `--out ""` y `--out "   "`) lanza `UsageError` con `export-csv` en el mensaje. `[]` devuelve `{ month: null, includeVoid: false, out: 'facturas.csv' }`.
 - `selectInvoices` sobre `listInvoices()` da los ids de C2, C3, C4 y C5.
 
 Comando: `npm test`. Rojo esperado: `ERR_MODULE_NOT_FOUND` de `src/export-options.js`.
