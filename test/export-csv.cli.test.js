@@ -92,6 +92,7 @@ const invalidArgs = [
   ['--month'],
   ['--month', '2026-08', '--month', '2026-09'],
   ['--formato', 'x'],
+  ['--month=2026-08'],
 ]
 
 for (const bad of invalidArgs) {
