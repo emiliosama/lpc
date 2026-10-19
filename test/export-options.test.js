@@ -17,6 +17,8 @@ const usageErrorCases = [
   ['--out seguido de otra opción', ['--out', '--month', '2026-08']],
   ['--out repetido', ['--out', 'a.csv', '--out', 'b.csv']],
   ['--include-void repetido', ['--include-void', '--include-void', '--out', 'f.csv']],
+  ['--out vacío', ['--out', '']],
+  ['--out solo con espacios', ['--out', '   ']],
 ]
 
 for (const [name, args] of usageErrorCases) {
