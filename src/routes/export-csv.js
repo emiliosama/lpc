@@ -19,5 +19,5 @@ export function handleExportCsv(req, res, url) {
     'Content-Type': 'text/csv; charset=utf-8',
     'Content-Disposition': 'attachment; filename="facturas.csv"',
   })
-  res.end('﻿' + toCsv(rows))
+  res.end('\uFEFF' + toCsv(rows))
 }
