@@ -80,7 +80,7 @@ El nombre lo declara la persona; no se verifica. Con `400` no se registra nada y
 1. Carga `/panel.js` como módulo.
 2. Al abrir y al cambiar `#status` o `#month`, pide `/api/invoices` con `queryString(...)` y arma la tabla con `textContent`, nunca con `innerHTML`.
 3. Muestra la fecha con `formatDate`, el monto con `formatAmount`, el estado con `statusLabel`, la cantidad de facturas y el total con `formatAmount(totalAmount(...))`.
-4. Deja `#download` deshabilitado (`aria-disabled="true"`, sin `href`) mientras el campo `#by` ("Tu nombre") esté vacío. Con nombre, el enlace apunta a `/api/export.csv` con los filtros y `by`. El nombre se recuerda en `localStorage`.
+4. Deja `#download` deshabilitado (`aria-disabled="true"`, sin `href`) mientras el campo `#by` ("Tu nombre") esté vacío. Con nombre, el enlace apunta a `/api/export.csv` con los filtros y `by`. Después de cada clic en "Descargar CSV", el campo `#by` se vacía y el botón vuelve a quedar deshabilitado. El nombre no se guarda en el navegador.
 
 `/panel.js` devuelve `src/web/panel.js` (`text/javascript; charset=utf-8`).
 

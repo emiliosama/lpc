@@ -252,15 +252,14 @@
         }
       }
 
-      try {
-        by.value = localStorage.getItem('panel-facturas-nombre') ?? ''
-      } catch {}
-
-      by.addEventListener('input', () => {
-        try {
-          localStorage.setItem('panel-facturas-nombre', by.value.trim())
-        } catch {}
-        actualizarDescarga()
+      by.addEventListener('input', actualizarDescarga)
+      download.addEventListener('click', () => {
+        if (!download.hasAttribute('href')) return
+        // Se vacía después de que el navegador siga el href, que ya lleva el nombre.
+        setTimeout(() => {
+          by.value = ''
+          actualizarDescarga()
+        }, 0)
       })
       status.addEventListener('change', actualizar)
       month.addEventListener('change', actualizar)
