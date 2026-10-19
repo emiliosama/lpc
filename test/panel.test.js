@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { after, before, test } from 'node:test'
 import { listInvoices } from '../src/invoices.js'
 import { createServer } from '../src/server.js'
-import { formatDate, queryString, statusLabel, totalAmount } from '../src/web/panel.js'
+import { formatAmount, formatDate, queryString, statusLabel, totalAmount } from '../src/web/panel.js'
 
 let server
 let base
@@ -79,4 +79,12 @@ test('C33: formatDate muestra la fecha como DD-MM-AAAA', () => {
   assert.equal(formatDate('2026-08-02'), '02-08-2026')
   assert.equal(formatDate('2026-8-2'), '2026-8-2')
   assert.equal(formatDate(''), '')
+})
+
+test('C34: formatAmount muestra el monto con $ y punto de miles', () => {
+  assert.equal(formatAmount(1250000), '$1.250.000')
+  assert.equal(formatAmount(890000), '$890.000')
+  assert.equal(formatAmount(0), '$0')
+  assert.equal(formatAmount(-500), '-$500')
+  assert.equal(formatAmount(1250000.5), '$1.250.000,5')
 })

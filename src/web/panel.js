@@ -9,6 +9,13 @@ export function formatDate(isoDate) {
   return match ? `${match[3]}-${match[2]}-${match[1]}` : isoDate
 }
 
+export function formatAmount(amount) {
+  const [integer, decimals] = String(Math.abs(amount)).split('.')
+  const grouped = integer.replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  const sign = amount < 0 ? '-' : ''
+  return `${sign}$${grouped}${decimals ? `,${decimals}` : ''}`
+}
+
 export function totalAmount(invoices) {
   return invoices.reduce((sum, invoice) => sum + invoice.amount, 0)
 }
