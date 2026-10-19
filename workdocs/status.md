@@ -28,7 +28,7 @@ Anota el comando y el resultado. Primero rojo. Después verde, o un gap citado.
 
 | Story | Comando | Resultado | Gap (si sigue rojo) |
 |---|---|---|---|
-| T-01-story-1 | `npm test` (`test/invoices-csv.test.js`) | Rojo (2026-10-15): `ERR_MODULE_NOT_FOUND: Cannot find module 'src/invoices-csv.js'`. tests 5, pass 4, fail 1. Verde (2026-10-19): `src/invoices-csv.js` con `toCsv` y `escapeField`. tests 6, pass 6, fail 0 | |
+| T-01-story-1 | `npm test` (`test/invoices-csv.test.js`) | Rojo (2026-10-15): `ERR_MODULE_NOT_FOUND: Cannot find module 'src/invoices-csv.js'`. tests 5, pass 4, fail 1. Verde (2026-10-19): `src/invoices-csv.js` con `toCsv` y `escapeField`. tests 6, pass 6, fail 0. Rojo (2026-10-19, casos borde C11 a C13 y `TypeError` del contrato): tests 32, pass 28, fail 4; sale `=1+1` sin `'`, `1250000.5` con punto, `null` como texto y `Cannot read properties of null` sin nombrar `toCsv`. Verde (2026-10-19): `textField`, `amountField` y validación de arreglo en `toCsv`. tests 32, pass 32, fail 0 | |
 | T-01-story-2 | | | |
 | T-01-story-2 | `npm test` | Rojo (15-10): `✖ test\export-options.test.js` con `Error [ERR_MODULE_NOT_FOUND]: Cannot find module '...\src\export-options.js'`; `tests 5, pass 4, fail 1` (los 4 de `invoices.test.js` siguen verdes). Verde (15-10, tras crear `src/export-options.js`): `tests 22, pass 22, fail 0`, local con Node 26; falta confirmar en la CI (Ubuntu, Node 20). | |
 | T-01-story-3 | | | |
