@@ -35,6 +35,14 @@ Sin dependencias npm nuevas: solo `node:fs`, `node:path`, `node:os`, `node:child
 1. Crea `src/invoices-csv.js` con `toCsv(invoices)`, según el contrato de arriba. El orden de columnas sale de los campos `id`, `client`, `issuedAt`, `amount` y `status`.
 2. Escapa cada campo con una función interna `escapeField(value)`: convierte el valor a `String` y, si contiene `;`, `"`, `\r` o `\n`, lo envuelve en comillas dobles y duplica las `"` internas. `amount` sale como `String(amount)`, sin separadores de miles.
 3. No toca `src/cli.js`, `src/invoices.js` ni el fixture.
+4. C11 (agregado tras el grill, PR #10): antes de escapar, `neutralizeFormula(value)` antepone `'` a `id` y `cliente` si empiezan con `=`, `+`, `-` o `@`. `fecha`, `monto` y `estado` no pasan por ella, así que un `monto` negativo sigue siendo número.
+
+**Casos borde (revisados el 2026-10-19 contra la spec):**
+
+- Dentro de la spec, con test: lista vacía (solo encabezado, respaldo de C5), salto de línea `\n` o `\r` en un campo (va entre comillas), campo de solo comillas y C11.
+- Sin acción: coma en un campo, acentos y espacios al inicio o al final salen tal cual.
+- Fuera de alcance según la spec: tabulador o CR al inicio, fórmulas en `fecha` o `estado`, `amount` decimal, campos `null` o ausentes y un argumento que no es arreglo. Con datos fuera de la forma de los Supuestos, el comportamiento no está definido.
+- Lo revisa María a mano: que Excel muestre como texto un cliente con `'` delante, y cómo muestra `AAAA-MM-DD`.
 
 **Test de aceptación (falla antes de codear):** `test/invoices-csv.test.js`. Cubre C8 tal cual y el contenido de C1 sin BOM: `toCsv` sobre `F-1001` y `F-1002` devuelve las 3 líneas exactas con `\r\n`, y el resultado no empieza con `﻿`. Comando: `npm test`. Rojo esperado: `ERR_MODULE_NOT_FOUND` de `src/invoices-csv.js`.
 
