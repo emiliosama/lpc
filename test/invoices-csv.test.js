@@ -45,3 +45,34 @@ test('toCsv doubles quotes in a field made only of quotes', () => {
   const csv = toCsv([{ id: 'F-9', client: '""', issuedAt: '2026-08-01', amount: 1000, status: 'open' }])
   assert.equal(csv, 'id;cliente;fecha;monto;estado\r\nF-9;"""""";2026-08-01;1000;open\r\n')
 })
+
+const base = { id: 'F-9', client: 'Sur', issuedAt: '2026-08-01', amount: 1000, status: 'open' }
+const row = (invoice) => toCsv([invoice]).split('\r\n')[1]
+
+test('toCsv prefixes text fields that look like formulas with a quote (C11)', () => {
+  assert.equal(row({ ...base, client: '=1+1' }), "F-9;'=1+1;2026-08-01;1000;open")
+  assert.equal(row({ ...base, client: '@SUM(A1)' }), "F-9;'@SUM(A1);2026-08-01;1000;open")
+  assert.equal(row({ ...base, client: '+56 9' }), "F-9;'+56 9;2026-08-01;1000;open")
+  assert.equal(row({ ...base, client: '-Sur' }), "F-9;'-Sur;2026-08-01;1000;open")
+  assert.equal(row({ ...base, client: '\tSur' }), "F-9;'\tSur;2026-08-01;1000;open")
+  assert.equal(row({ ...base, client: '=HYPERLINK("x")' }), 'F-9;"\'=HYPERLINK(""x"")";2026-08-01;1000;open')
+})
+
+test('toCsv leaves a negative amount as a number (C11)', () => {
+  assert.equal(row({ ...base, amount: -500 }), 'F-9;Sur;2026-08-01;-500;open')
+})
+
+test('toCsv writes decimal amounts with a decimal comma (C12)', () => {
+  assert.equal(row({ ...base, amount: 1250000.5 }), 'F-9;Sur;2026-08-01;1250000,5;open')
+})
+
+test('toCsv writes null, undefined or missing fields as empty (C13)', () => {
+  assert.equal(row({ ...base, client: null }), 'F-9;;2026-08-01;1000;open')
+  assert.equal(row({ ...base, client: undefined }), 'F-9;;2026-08-01;1000;open')
+  const { client, ...withoutClient } = base
+  assert.equal(row(withoutClient), 'F-9;;2026-08-01;1000;open')
+})
+
+test('toCsv throws a TypeError naming toCsv when not given an array', () => {
+  assert.throws(() => toCsv(null), { name: 'TypeError', message: /toCsv/ })
+})

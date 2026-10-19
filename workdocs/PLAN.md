@@ -50,13 +50,16 @@ Sin acción, porque el comportamiento es correcto:
 - Acentos (`Ñuñoa Ingeniería`): salen tal cual. El BOM lo pone la Story 3.
 - Espacios al inicio o al final: se conservan.
 
-Fuera de la spec. Pendiente de decidir con el equipo o con María; no entran al PR hasta que la spec los nombre:
+Agregados a la spec el 2026-10-19 (C11 a C13), con su decisión:
 
-- Fórmula en un campo (cliente que empieza con `=`, `+`, `-` o `@`): sale tal cual y Excel la ejecuta al abrir el archivo. Es el único riesgo de seguridad. El fixture no lo dispara.
-- `amount` con decimales (`1250000.5`): sale `1250000.5`, y en Excel es-CL el punto no es separador decimal. La spec dice que el monto es entero.
-- Campo `null`, `undefined` o ausente: sale el texto `null` o `undefined` en la celda. El fixture siempre trae los 5 campos.
-- `toCsv(null)` o un valor que no es arreglo: lanza `TypeError`. El contrato dice que recibe un arreglo.
-- Excel convierte `2026-08-02` en fecha y puede mostrarla como `02-08-2026`. Es comportamiento de Excel, no de `toCsv`; lo revisa María a mano (Supuestos de la spec).
+- Fórmula en un campo de texto (empieza con `=`, `+`, `-`, `@`, tabulador o `\r`): se antepone `'`, como recomienda OWASP contra la inyección CSV. `monto` queda fuera, para que un monto negativo siga siendo número en Excel (C11). La `'` se antepone antes de escapar.
+- `amount` con decimales (`1250000.5`): sale con coma decimal, `1250000,5`, que Excel es-CL lee como número. Lanzar un error obligaría a la Story 3 a manejarlo (C12).
+- Campo `null`, `undefined` o ausente: sale vacío, no el texto `null` o `undefined` (C13).
+- `toCsv` con algo que no es arreglo: lanza `TypeError` con un mensaje que nombra `toCsv`. Es parte del contrato de la función, no un criterio de la spec.
+
+Sin cambio:
+
+- Excel convierte `2026-08-02` en fecha y puede mostrarla como `02-08-2026`. Es comportamiento de Excel, no de `toCsv`. Forzar texto requeriría `="..."`, que es una fórmula. Lo revisa María a mano (Supuestos de la spec).
 
 **Test de aceptación (falla antes de codear):** `test/invoices-csv.test.js`. Cubre C8 tal cual y el contenido de C1 sin BOM: `toCsv` sobre `F-1001` y `F-1002` devuelve las 3 líneas exactas con `\r\n`, y el resultado no empieza con `﻿`. Comando: `npm test`. Rojo esperado: `ERR_MODULE_NOT_FOUND` de `src/invoices-csv.js`.
 

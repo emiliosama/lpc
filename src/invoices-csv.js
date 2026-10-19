@@ -1,7 +1,15 @@
 const header = ['id', 'cliente', 'fecha', 'monto', 'estado']
 
-function escapeField(value) {
-  const text = String(value)
+function textField(value) {
+  const text = value == null ? '' : String(value)
+  return /^[=+\-@\t\r]/.test(text) ? `'${text}` : text
+}
+
+function amountField(value) {
+  return value == null ? '' : String(value).replace('.', ',')
+}
+
+function escapeField(text) {
   if (/[;"\r\n]/.test(text)) {
     return `"${text.replaceAll('"', '""')}"`
   }
@@ -9,12 +17,15 @@ function escapeField(value) {
 }
 
 export function toCsv(invoices) {
+  if (!Array.isArray(invoices)) {
+    throw new TypeError('toCsv espera un arreglo de facturas')
+  }
   const rows = invoices.map((invoice) => [
-    invoice.id,
-    invoice.client,
-    invoice.issuedAt,
-    String(invoice.amount),
-    invoice.status,
+    textField(invoice.id),
+    textField(invoice.client),
+    textField(invoice.issuedAt),
+    amountField(invoice.amount),
+    textField(invoice.status),
   ])
   return [header, ...rows].map((row) => row.map(escapeField).join(';') + '\r\n').join('')
 }

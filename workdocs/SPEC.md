@@ -25,9 +25,11 @@ node src/cli.js export-csv [--month AAAA-MM] [--include-void] [--out <ruta>]
   - Separador `;`, porque Excel en español usa la coma como separador decimal.
   - Fin de línea `\r\n`.
   - Un campo que contenga `;`, `"` o un salto de línea va entre comillas dobles, y sus `"` internas se duplican.
+  - Un campo de texto (`id`, `cliente`, `fecha`, `estado`) que empiece con `=`, `+`, `-`, `@`, tabulador o `\r` lleva una `'` delante, para que Excel no lo ejecute como fórmula (inyección CSV). `monto` no la lleva.
+  - Un campo `null`, `undefined` o ausente sale vacío.
 - **Campos:**
   - `fecha`: `issuedAt` tal cual, `AAAA-MM-DD`.
-  - `monto`: entero sin separadores de miles ni símbolo. `1250000`, no `$1.250.000`.
+  - `monto`: entero sin separadores de miles ni símbolo. `1250000`, no `$1.250.000`. Si trae decimales, usa coma decimal: `1250000,5`.
   - `estado`: el valor del JSON tal cual (`paid`, `open`, `void`), igual que en `node src/cli.js list`, que es lo que tesorería copia hoy.
 - **Anuladas:** las facturas con `status: "void"` quedan fuera por defecto. Con `--include-void` entran en el mismo archivo con estado `void`, para que tesorería pueda cuadrar filtrándolas en Excel. No hay archivo aparte de anuladas.
 - **Filtro por mes (opcional):** `--month 2026-08` deja solo las facturas cuyo `issuedAt` empieza con `2026-08`. Sin `--month` se exportan todos los meses.
@@ -58,6 +60,9 @@ Con el fixture actual (`F-1001` y `F-1002` de agosto 2026; `F-1003` anulada y `F
 8. `toCsv([{ id: 'F-9', client: 'Comercial "El Sol"; Ltda', issuedAt: '2026-08-01', amount: 1000, status: 'open' }])` devuelve exactamente `id;cliente;fecha;monto;estado\r\nF-9;"Comercial ""El Sol""; Ltda";2026-08-01;1000;open\r\n`. El fixture no se toca.
 9. `list` y `get` se comportan igual que hoy: los tests actuales siguen en verde, incluido que el listado trae las anuladas.
 10. `export-csv --out <tmp>/no-existe/g.csv` termina con código 1, stderr contiene `<tmp>/no-existe/g.csv` y no contiene `    at ` (sin stack trace).
+11. `toCsv` con `client: '=1+1'` escribe `'=1+1`; con `client: '@SUM(A1)'`, `'@SUM(A1)`; y con `amount: -500`, `-500` sin `'`.
+12. `toCsv` con `amount: 1250000.5` escribe `1250000,5`.
+13. `toCsv` con `client: null`, con `client: undefined` o sin `client` escribe la celda vacía: `F-9;;2026-08-01;1000;open`.
 
 ## Fuera de alcance
 
