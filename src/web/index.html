@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Facturas · Andes Lab</title>
+    <style>
+      body { font-family: system-ui, sans-serif; margin: 2rem; color: #1f2933; }
+      h1 { font-size: 1.4rem; }
+      table { border-collapse: collapse; min-width: 32rem; }
+      th, td { padding: 0.4rem 0.8rem; border-bottom: 1px solid #d9e2ec; text-align: left; }
+      th { background: #f0f4f8; }
+      td.monto { text-align: right; font-variant-numeric: tabular-nums; }
+      #mensaje { color: #b42318; }
+    </style>
+  </head>
+  <body>
+    <h1>Facturas</h1>
+    <p id="mensaje"></p>
+    <table>
+      <thead>
+        <tr><th>id</th><th>cliente</th><th>fecha</th><th>monto</th><th>estado</th></tr>
+      </thead>
+      <tbody id="filas"></tbody>
+    </table>
+    <script type="module">
+      const filas = document.getElementById('filas')
+      const mensaje = document.getElementById('mensaje')
+
+      function celda(texto, clase) {
+        const td = document.createElement('td')
+        td.textContent = texto
+        if (clase) td.className = clase
+        return td
+      }
+
+      try {
+        const res = await fetch('/api/invoices')
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        for (const factura of await res.json()) {
+          const tr = document.createElement('tr')
+          tr.append(
+            celda(factura.id),
+            celda(factura.client),
+            celda(factura.issuedAt),
+            celda(String(factura.amount), 'monto'),
+            celda(factura.status),
+          )
+          filas.append(tr)
+        }
+      } catch (err) {
+        mensaje.textContent = `No se pudieron cargar las facturas: ${err.message}`
+      }
+    </script>
+  </body>
+</html>
