@@ -29,6 +29,7 @@ export function parseExportArgs(args) {
       if (!monthPattern.test(value)) throw new UsageError()
       options.month = value
     } else {
+      if (value.trim() === '') throw new UsageError()
       options.out = value
     }
   }
